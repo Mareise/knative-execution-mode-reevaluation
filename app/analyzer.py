@@ -1,6 +1,6 @@
 import requests
 
-PROMETHEUS_URL = "http://localhost:9090/api/v1/query"
+PROMETHEUS_URL = "http://prometheus-kube-prometheus-prometheus:9090/api/v1/query"
 FUNCTION_NAME = "myfunc"
 
 def query_prometheus():
