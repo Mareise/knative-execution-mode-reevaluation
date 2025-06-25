@@ -1,10 +1,13 @@
 import requests
+import os
 
-PROMETHEUS_URL = "http://prometheus-kube-prometheus-prometheus:9090/api/v1/query"
+PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 FUNCTION_NAME = "myfunc"
 
 def query_prometheus():
     print("Haaallloooo")
+    url = f"{PROMETHEUS_URL}/api/v1/query"
+    print(url)
     query = f'avg_over_time(function_execution_duration_seconds{{function_name="{FUNCTION_NAME}"}}[10m])'
     response = requests.get(
         f"{PROMETHEUS_URL}/api/v1/query",
