@@ -2,6 +2,8 @@ import requests
 import os
 from kubernetes import client, config
 
+from app.queries import QUERIES
+
 PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 
 
@@ -22,8 +24,7 @@ def get_knative_services():
 
 
 def query_service_metrics(service_name):
-    query = f'avg_over_time(function_execution_duration_seconds{{function_name="{service_name}"}}[10m])'
-
+    query = QUERIES["latency_avg"](service_name)
 
     response = requests.get(
         f"{PROMETHEUS_URL}/api/v1/query",
@@ -48,5 +49,6 @@ def query_prometheus(service_names):
 
 
 if __name__ == "__main__":
-    services = get_knative_services()
+    # services = get_knative_services() todo uncomment when commiting
+    services = ["wasgeht"]  # for testing
     query_prometheus(services)
