@@ -97,7 +97,7 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
 
 
 if __name__ == "__main__":
-    services = get_knative_services() #todo uncomment when commiting
-    # services = ["wasgeht", "gpu-function"]  # for testing
+    # services = get_knative_services() #todo uncomment when commiting
+    services = ["wasgeht", "gpu-function"]  # for testing
     query_prometheus(services)
     
