@@ -1,6 +1,7 @@
 import requests
 import os
 from kubernetes import client, config
+import time
 
 from app.queries import QUERIES
 
@@ -24,7 +25,7 @@ def get_knative_services():
 
 
 def query_service_metrics(service_name):
-    query = QUERIES["latency_avg"](service_name)
+    query = QUERIES["latency_avg"](service_name, window="5m")
 
     response = requests.get(
         f"{PROMETHEUS_URL}/api/v1/query",
@@ -43,12 +44,60 @@ def query_prometheus(service_names):
 
         if result["data"]["result"]:
             value = float(result["data"]["result"][0]["value"][1])
-            print(f"Average execution time for {service} over last 10m: {value:.3f} seconds")
+            print(f"Average execution time for {service} over last 5m: {value:.3f} ms")
+
+            time.sleep(2.5)
+            patch_knative_service(service, 1, "gpu_preferred")
+            if value > 100:
+                print("WARNING: Execution time is above 100ms")
+                patch_knative_service(service, 1, "gpu_preferred")
         else:
             print(f"No data found for {service}")
 
+def patch_knative_service(service_name, gpu_number, execution_mode, namespace="default"):
+    config.load_incluster_config()
+    api = client.CustomObjectsApi()
+
+    patch_body = {
+        "spec": {
+            "template": {
+                "metadata": {
+                    "annotations": {
+                        "executionMode": execution_mode
+                    }
+                },
+                "spec": {
+                    "containers": [
+                        {
+                            "resources": {
+                                "limits": {
+                                    "cpu": "500m",
+                                    "nvidia.com/gpu": str(gpu_number)
+                                },
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    try:
+        api.patch_namespaced_custom_object(
+            group="serving.knative.dev",
+            version="v1",
+            namespace=namespace,
+            plural="services",
+            name=service_name,
+            body=patch_body
+        )
+        print(f"Patched service {service_name}")
+    except Exception as e:
+        print(f"Failed to patch {service_name}: {e}")
+
 
 if __name__ == "__main__":
-    # services = get_knative_services() todo uncomment when commiting
-    services = ["wasgeht"]  # for testing
+    services = get_knative_services() #todo uncomment when commiting
+    # services = ["wasgeht", "gpu-function"]  # for testing
     query_prometheus(services)
+    
