@@ -1,7 +1,11 @@
+import os
+import time
+
 from knative_service import get_knative_services, patch_knative_service
 from prometheus_service import query_service_metrics
 from queries import QUERIES
 
+INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "60"))
 
 def reevaluate(services):
     for service in services:
@@ -15,6 +19,8 @@ def reevaluate(services):
 
 
 if __name__ == "__main__":
-    kn_services = get_knative_services()
-    reevaluate(kn_services)
+    while True:
+        kn_services = get_knative_services()
+        reevaluate(kn_services)
+        time.sleep(INTERVAL_SECONDS)
     
