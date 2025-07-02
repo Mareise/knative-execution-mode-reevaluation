@@ -1,6 +1,7 @@
 import os
 import requests
 
+from reevaluator import logger
 
 PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 
@@ -14,5 +15,5 @@ def query_service_metrics(service_name, query):
     if result["data"]["result"]:
         return float(result["data"]["result"][0]["value"][1])
 
-    print(f"No data found for {service_name}")
+    logger.info(f"No data found for {service_name}")
     return None

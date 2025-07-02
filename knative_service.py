@@ -1,9 +1,11 @@
 from kubernetes import client, config
 from collections import namedtuple
 
+from reevaluator import logger
+
 
 def get_knative_services():
-    print("Getting Knative services")
+    logger.info("Getting Knative services")
     config.load_incluster_config()
 
     api = client.CustomObjectsApi()
@@ -16,7 +18,7 @@ def get_knative_services():
     KnService = namedtuple("KnService", ["name", "namespace"])
     kn_services = [KnService(item["metadata"]["name"], item["metadata"]["namespace"]) for item in kn_objects["items"]]
 
-    print(kn_services)
+    logger.info(kn_services)
 
     return kn_services
 
@@ -67,6 +69,6 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
             name=service_name,
             body=patch_body
         )
-        print(f"Patched service {service_name}")
+        logger.info(f"Patched service {service_name}")
     except Exception as e:
-        print(f"Failed to patch {service_name}: {e}")
+        logger.exception(f"Failed to patch {service_name}: {e}")
