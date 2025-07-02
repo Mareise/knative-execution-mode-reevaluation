@@ -46,7 +46,7 @@ def query_prometheus(service_names):
             value = float(result["data"]["result"][0]["value"][1])
             print(f"Average execution time for {service} over last 5m: {value:.3f} ms")
 
-            time.sleep(2.5)
+            time.sleep(30)
             patch_knative_service(service, 1, "gpu_preferred")
             if value > 100:
                 print("WARNING: Execution time is above 100ms")
@@ -54,9 +54,20 @@ def query_prometheus(service_names):
         else:
             print(f"No data found for {service}")
 
+
 def patch_knative_service(service_name, gpu_number, execution_mode, namespace="default"):
     config.load_incluster_config()
     api = client.CustomObjectsApi()
+
+    current_service = api.get_namespaced_custom_object(
+        group="serving.knative.dev",
+        version="v1",
+        namespace=namespace,
+        plural="services",
+        name=service_name
+    )
+
+    current_image = current_service["spec"]["template"]["spec"]["containers"][0]["image"]
 
     patch_body = {
         "spec": {
@@ -69,6 +80,7 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
                 "spec": {
                     "containers": [
                         {
+                            "image": current_image,
                             "resources": {
                                 "limits": {
                                     "cpu": "500m",
