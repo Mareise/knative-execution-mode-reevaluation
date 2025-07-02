@@ -1,8 +1,8 @@
 import os
 import requests
+from logger import get_logger
 
-from reevaluator import logger
-
+logger = get_logger(__name__)
 PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 
 def query_service_metrics(service_name, query):

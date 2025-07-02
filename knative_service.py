@@ -1,7 +1,8 @@
 from kubernetes import client, config
 from collections import namedtuple
+from logger import get_logger
 
-from reevaluator import logger
+logger = get_logger(__name__)
 
 
 def get_knative_services():

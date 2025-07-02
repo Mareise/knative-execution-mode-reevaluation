@@ -1,21 +1,12 @@
 import os
 import time
-import logging
 
 from knative_service import get_knative_services, patch_knative_service
 from prometheus_service import query_service_metrics
 from queries import QUERIES
+from logger import get_logger
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-logging.basicConfig(
-    level=LOG_LEVEL,
-    format="%(asctime)s %(levelname)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-
-logger = logging.getLogger(__name__)
-
-
+logger = get_logger(__name__)
 INTERVAL_SECONDS = int(os.environ.get("INTERVAL_SECONDS", "60"))
 
 def reevaluate(services):
