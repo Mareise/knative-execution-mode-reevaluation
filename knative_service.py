@@ -3,6 +3,7 @@ from collections import namedtuple
 
 
 def get_knative_services():
+    print("Getting Knative services")
     config.load_incluster_config()
 
     api = client.CustomObjectsApi()

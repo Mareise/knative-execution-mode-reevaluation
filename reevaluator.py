@@ -21,6 +21,7 @@ def reevaluate(services):
 
 
 if __name__ == "__main__":
+    print("Starting reevaluator")
     while True:
         kn_services = get_knative_services()
         reevaluate(kn_services)
