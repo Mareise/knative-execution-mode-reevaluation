@@ -6,5 +6,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-
-ENTRYPOINT ["python", "analyzer.py"]
+ENTRYPOINT ["python", "reevaluator.py"]
