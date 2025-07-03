@@ -9,17 +9,17 @@ from queries import QUERIES, QUERY_THRESHOLDS
 
 logger = get_logger(__name__)
 
-WINDOW_SECONDS = os.environ.get("WINDOW_SECONDS", "30m")
+WINDOW_SECONDS = int(os.environ.get("WINDOW_MINUTES", "30"))
 
 
 def evaluator(services: list[KnService], query_name):
     for service in services:
         logger.info(f"Querying {query_name} metrics for service: {service.name}")
 
-        query_result = query_service_metrics(service, QUERIES[query_name](service.name, WINDOW_SECONDS))
+        query_result = query_service_metrics(service, QUERIES[query_name](service.name, str(WINDOW_SECONDS) + "m"))
         if query_result is not None:
             logger.info(
-                f"Result of query {query_name} for service {service.name} over last {WINDOW_SECONDS}: {query_result:.3f} ms"
+                f"Result of query {query_name} for service {service.name} over last {WINDOW_SECONDS}m: {query_result:.3f} ms"
             )
 
             if service.last_execution_mode_update_time is not None:
