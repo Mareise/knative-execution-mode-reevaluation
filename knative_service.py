@@ -23,7 +23,7 @@ def get_knative_services():
             item["metadata"]["name"],
             item["metadata"]["namespace"],
             item["metadata"]["annotations"]["executionMode"],
-            item["metadata"]["lastExecutionModeUpdateTime"]
+            item["metadata"].get("lastExecutionModeUpdateTime", None)
         ) for item in kn_objects["items"]]
 
     logger.info(kn_services)
