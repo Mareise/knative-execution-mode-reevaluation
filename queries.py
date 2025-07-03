@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 QUERIES = {
     # TODO pod waiting time
     "latency_avg": lambda service_name, window="5m": (
@@ -9,7 +11,9 @@ QUERIES = {
     ),
 }
 
-THRESHOLDS = {
-    "latency_avg": 100,
-    "request_rate": 1000,
+QUERY_THRESHOLD = namedtuple("QueryThreshold", ["upper_bound", "lower_bound"])
+
+QUERY_THRESHOLDS = {
+    "latency_avg": QUERY_THRESHOLD(upper_bound=100, lower_bound=0.5),
+    "request_rate": QUERY_THRESHOLD(upper_bound=100, lower_bound=10),
 }

@@ -4,7 +4,8 @@ from logger import get_logger
 from datetime import datetime, timezone
 
 logger = get_logger(__name__)
-KnService = namedtuple("KnService", ["name", "namespace", "execution_mode"])
+KnService = namedtuple("KnService", ["name", "namespace", "execution_mode", "last_execution_mode_update_time"])
+
 
 def get_knative_services():
     logger.info("Getting Knative services")
@@ -17,11 +18,18 @@ def get_knative_services():
         plural="services"
     )
 
-    kn_services = [KnService(item["metadata"]["name"], item["metadata"]["namespace"], item["metadata"]["annotations"]["executionMode"]) for item in kn_objects["items"]]
+    kn_services = [
+        KnService(
+            item["metadata"]["name"],
+            item["metadata"]["namespace"],
+            item["metadata"]["annotations"]["executionMode"],
+            item["metadata"]["lastExecutionModeUpdateTime"]
+        ) for item in kn_objects["items"]]
 
     logger.info(kn_services)
 
     return kn_services
+
 
 def patch_knative_service(service_name, gpu_number, execution_mode, namespace="default"):
     config.load_incluster_config()
@@ -41,7 +49,8 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
         "metadata": {
             "annotations": {
                 "executionMode": execution_mode,
-            }
+            },
+            "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat()
         },
         "spec": {
             "template": {
