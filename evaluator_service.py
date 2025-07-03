@@ -40,6 +40,7 @@ def evaluator(services: list[KnService], query_name):
                           and service.execution_mode == ExecutionModes.GPU_PREFERRED):
                         switch_execution_mode(service)
 
+            # TODO vielleicht macht es sinn wenn execution mode GPU_preferred ist das garned zu checken
             elif query_result > QUERY_THRESHOLDS[query_name].upper_bound:
                 logger.info(f"WARNING: Result is above threshold ({QUERY_THRESHOLDS[query_name].upper_bound})")
                 patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, service.namespace)

@@ -23,7 +23,7 @@ def get_knative_services():
             item["metadata"]["name"],
             item["metadata"]["namespace"],
             item["metadata"]["annotations"]["executionMode"],
-            item["metadata"].get("lastExecutionModeUpdateTime", None)
+            item["metadata"]["annotations"].get("lastExecutionModeUpdateTime", None)
         ) for item in kn_objects["items"]]
 
     logger.info(kn_services)
@@ -49,8 +49,8 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
         "metadata": {
             "annotations": {
                 "executionMode": execution_mode,
+                "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat()
             },
-            "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat()
         },
         "spec": {
             "template": {
