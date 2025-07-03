@@ -14,12 +14,12 @@ WINDOW_SECONDS = int(os.environ.get("WINDOW_MINUTES", "30"))
 
 def evaluator(services: list[KnService], query_name):
     for service in services:
-        logger.info(f"Querying {query_name} metrics for service: {service.name}")
+        logger.debug(f"{service.name}: Querying {query_name}")
 
         query_result = query_service_metrics(service, QUERIES[query_name](service.name, str(WINDOW_SECONDS) + "m"))
         if query_result is not None:
             logger.info(
-                f"Result of query {query_name} for service {service.name} over last {WINDOW_SECONDS}m: {query_result:.3f} ms"
+                f"{service.name}: Result of query {query_name} over last {WINDOW_SECONDS}m: {query_result:.3f} ms"
             )
 
             if service.last_execution_mode_update_time is not None:
@@ -32,11 +32,12 @@ def evaluator(services: list[KnService], query_name):
 
                     if new_mode_query_result is not None:
                         logger.info(
-                            f"Result of query {query_name} for newly created service {service.name} over last {last_modified_window}: {new_mode_query_result:.3f} ms"
+                            f"{service.name}: Result of query {query_name} for newly created service over last {last_modified_window}: {new_mode_query_result:.3f} ms"
                         )
                         # If the new mode is significantly worse than the old one we switch back
                         if new_mode_query_result - QUERY_THRESHOLDS[query_name].performance_change_gap > query_result:
-                            logger.info("WARNING: The new mode is worse than the old one, switching back")
+                            logger.info(
+                                f"{service.name}: WARNING: The new mode is worse than the old one, switching back")
                             switch_execution_mode(service)
 
                         # If the new mode (gpu) is just a bit better than the old one (cpu) we switch back to cpu # TODO maybe use seperate threshold for this?
@@ -44,10 +45,10 @@ def evaluator(services: list[KnService], query_name):
                               and service.execution_mode == ExecutionModes.GPU_PREFERRED):
                             switch_execution_mode(service)
 
-            # TODO vielleicht macht es sinn wenn execution mode GPU_preferred ist das garned zu checken
             elif query_result > QUERY_THRESHOLDS[
                 query_name].upper_bound and service.execution_mode == ExecutionModes.CPU_PREFERRED:
-                logger.info(f"WARNING: Result is above threshold ({QUERY_THRESHOLDS[query_name].upper_bound})")
+                logger.info(
+                    f"{service.name}: WARNING: Result is above threshold ({QUERY_THRESHOLDS[query_name].upper_bound})")
                 patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, service.namespace)
 
 

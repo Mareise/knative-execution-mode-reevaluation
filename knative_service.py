@@ -8,7 +8,7 @@ KnService = namedtuple("KnService", ["name", "namespace", "execution_mode", "las
 
 
 def get_knative_services():
-    logger.info("Getting Knative services")
+    logger.debug("Getting Knative services")
     config.load_incluster_config()
 
     api = client.CustomObjectsApi()
@@ -85,6 +85,6 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
             name=service_name,
             body=patch_body
         )
-        logger.info(f"Patched service {service_name} with execution mode {execution_mode} and GPU number {gpu_number}")
+        logger.info(f"{service_name}: Patched with execution mode {execution_mode} and GPU number {gpu_number}")
     except Exception as e:
-        logger.error(f"Failed to patch {service_name}: {e}")
+        logger.error(f"{service_name}: Failed to patch: {e}")
