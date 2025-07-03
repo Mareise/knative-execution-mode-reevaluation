@@ -1,9 +1,10 @@
 from kubernetes import client, config
 from collections import namedtuple
 from logger import get_logger
+from datetime import datetime, timezone
 
 logger = get_logger(__name__)
-
+KnService = namedtuple("KnService", ["name", "namespace", "execution_mode"])
 
 def get_knative_services():
     logger.info("Getting Knative services")
@@ -16,8 +17,7 @@ def get_knative_services():
         plural="services"
     )
 
-    KnService = namedtuple("KnService", ["name", "namespace"])
-    kn_services = [KnService(item["metadata"]["name"], item["metadata"]["namespace"]) for item in kn_objects["items"]]
+    kn_services = [KnService(item["metadata"]["name"], item["metadata"]["namespace"], item["metadata"]["annotations"]["executionMode"]) for item in kn_objects["items"]]
 
     logger.info(kn_services)
 
@@ -38,12 +38,18 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
     current_image = current_service["spec"]["template"]["spec"]["containers"][0]["image"]
 
     patch_body = {
+        "metadata": {
+            "annotations": {
+                "executionMode": execution_mode,
+            }
+        },
         "spec": {
             "template": {
                 "metadata": {
                     "annotations": {
-                        "executionMode": execution_mode
-                    }
+                        "executionMode": execution_mode,
+                    },
+                    "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat()
                 },
                 "spec": {
                     "containers": [
@@ -70,6 +76,6 @@ def patch_knative_service(service_name, gpu_number, execution_mode, namespace="d
             name=service_name,
             body=patch_body
         )
-        logger.info(f"Patched service {service_name}")
+        logger.info(f"Patched service {service_name} with execution mode {execution_mode} and GPU number {gpu_number}")
     except Exception as e:
-        logger.exception(f"Failed to patch {service_name}: {e}")
+        logger.error(f"Failed to patch {service_name}: {e}")
