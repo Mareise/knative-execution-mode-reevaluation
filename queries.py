@@ -11,9 +11,10 @@ QUERIES = {
     ),
 }
 
-QUERY_THRESHOLD = namedtuple("QueryThreshold", ["upper_bound", "lower_bound"])
+# TODO different performance_change_gap dependent on current execution mode
+QUERY_THRESHOLD = namedtuple("QueryThreshold", ["upper_bound", "lower_bound", "performance_change_gap"])
 
 QUERY_THRESHOLDS = {
-    "latency_avg": QUERY_THRESHOLD(upper_bound=100, lower_bound=0.5),
+    "latency_avg": QUERY_THRESHOLD(upper_bound=100, lower_bound=0.5, performance_change_gap=20),
     "request_rate": QUERY_THRESHOLD(upper_bound=100, lower_bound=10),
 }
