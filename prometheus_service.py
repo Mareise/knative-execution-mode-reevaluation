@@ -23,8 +23,7 @@ class ServiceMetricsReporter:
                 query = query_fn(self.service.name, query_window)
                 query_result = query_service_metrics(self.service.name, query)
 
-                # Default to regular query result
-                result = QUERY_RESULT(query_result)
+                result = QUERY_RESULT(query_result, None)
 
                 # Check for recent execution mode update
                 last_update = self.service.last_execution_mode_update_time
