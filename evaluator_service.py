@@ -29,13 +29,13 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
               and service.execution_mode == ExecutionModes.GPU_PREFERRED):
             switch_execution_mode(service)
 
-    elif query_result > QUERY_THRESHOLDS[
+    elif query_result.query_result > QUERY_THRESHOLDS[
         query_name].upper_bound and service.execution_mode == ExecutionModes.CPU_PREFERRED:
         logger.info(
             f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[query_name].upper_bound})")
         switch_execution_mode(service)
 
-    elif query_result < QUERY_THRESHOLDS[
+    elif query_result.query_result < QUERY_THRESHOLDS[
         query_name].lower_bound and service.execution_mode == ExecutionModes.GPU_PREFERRED:
         logger.info(
             f"{service.name}: WARNING: Result is below lower bound ({QUERY_THRESHOLDS[query_name].upper_bound})")
