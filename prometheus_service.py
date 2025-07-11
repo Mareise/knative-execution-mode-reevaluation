@@ -22,6 +22,7 @@ class ServiceMetricsReporter:
                 query_window = f"{self.window}m"
                 query = query_fn(self.service.name, query_window)
                 query_result = query_service_metrics(self.service.name, query)
+                logger.debug("Nach execution")
 
                 result = QUERY_RESULT(query_result, None)
 
