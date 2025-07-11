@@ -28,9 +28,11 @@ class ServiceMetricsReporter:
                 # Check for recent execution mode update
                 last_update = self.service.last_execution_mode_update_time
                 if last_update:
+                    logger.debug(f"({datetime.now(timezone.utc)} - {datetime.fromisoformat(last_update)})")
                     last_modified_window = int(
                         (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
                     )
+                    logger.debug(f"Last modified window: {last_modified_window}")
                     if last_modified_window < self.window:
                         new_mode_query = query_fn(self.service.name, f"{last_modified_window}m")
                         new_mode_query_result = query_service_metrics(self.service.name, new_mode_query)
