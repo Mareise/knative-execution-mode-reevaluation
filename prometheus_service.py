@@ -11,9 +11,9 @@ PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 
 
 class ServiceMetricsReporter:
-    def __init__(self, service: KnService, window_seconds):
+    def __init__(self, service: KnService, window_minutes):
         self.service = service
-        self.window = window_seconds
+        self.window = window_minutes
         self.results = {}
 
     def run_queries(self, query_functions: dict):
@@ -65,5 +65,5 @@ def query_service_metrics(service_name, query):
     if result.get("data", {}).get("result"):
         return float(result["data"]["result"][0]["value"][1])
 
-    logger.info(f"{service_name}: No data found")
+    logger.debug(f"{service_name}: No data found")
     return None
