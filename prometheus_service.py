@@ -22,14 +22,12 @@ class ServiceMetricsReporter:
                 query_window = f"{self.window}m"
                 query = query_fn(self.service.name, query_window)
                 query_result = query_service_metrics(self.service.name, query)
-                logger.debug("Nach execution")
 
                 result = QUERY_RESULT(query_result, None)
 
                 # Check for recent execution mode update
                 last_update = self.service.last_execution_mode_update_time
                 if last_update:
-                    logger.debug(f"({datetime.now(timezone.utc)} - {datetime.fromisoformat(last_update)})")
                     last_modified_window = int(
                         (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
                     )
@@ -70,7 +68,7 @@ def query_service_metrics(service_name, query):
     response.raise_for_status()
     result = response.json()
     if result.get("data", {}).get("result"):
-        result_value = float(result["data"]["result"][0]["values"][1])
+        result_value = float(result["data"]["result"][0]["value"][1])
         logger.debug(f"{service_name}: Executed query: {query} with result: {result_value}")
         return result_value
 
