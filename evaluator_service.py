@@ -15,7 +15,7 @@ WINDOW_SECONDS = int(os.environ.get("WINDOW_MINUTES", "30"))
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
     query_name = "latency_avg"  # TODO only for now
     query_result = reporter.get_result(query_name)
-    if query_result.query_result is None:
+    if query_result is None or query_result.query_result is None:
         return
 
     if query_result.new_mode_query_result is not None:
