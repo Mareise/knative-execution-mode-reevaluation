@@ -42,7 +42,10 @@ class ServiceMetricsReporter:
                 self.results[name] = result
 
             except Exception as e:
-                logger.error(f"Error running query '{name}' for service '{self.service.name}': {e}")
+                logger.error(
+                    f"Error running query '{name}' for service '{self.service.name}': {e}",
+                    exc_info=True
+                )
                 self.results[name] = None
 
     def get_result(self, query_name) -> QUERY_RESULT:
