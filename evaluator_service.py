@@ -25,24 +25,30 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             logger.info(
                 f"{service.name}: WARNING: The new mode is worse than the old one, switching back")
             switch_execution_mode(service)
+            return
 
         # If the new mode (gpu) is just a bit better than the old one (cpu) we switch back to cpu # TODO maybe use seperate threshold for this?
         elif (query_result.new_mode_query_result + QUERY_THRESHOLDS[
             query_name].performance_change_gap > query_result.query_result
               and service.execution_mode == ExecutionModes.GPU_PREFERRED):
+            logger.info(
+                f"{service.name}: WARNING: The new mode is just a bit better than the old one, switching back to cpu")
             switch_execution_mode(service)
+            return
 
-    elif query_result.query_result > QUERY_THRESHOLDS[
+    if query_result.query_result > QUERY_THRESHOLDS[
         query_name].upper_bound and service.execution_mode == ExecutionModes.CPU_PREFERRED:
         logger.info(
             f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[query_name].upper_bound})")
         switch_execution_mode(service)
+        return
 
-    elif query_result.query_result < QUERY_THRESHOLDS[
+    if query_result.query_result < QUERY_THRESHOLDS[
         query_name].lower_bound and service.execution_mode == ExecutionModes.GPU_PREFERRED:
         logger.info(
             f"{service.name}: WARNING: Result is below lower bound ({QUERY_THRESHOLDS[query_name].upper_bound})")
         switch_execution_mode(service)
+        return
 
 
 def switch_execution_mode(service: KnService):

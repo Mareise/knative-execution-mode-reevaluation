@@ -63,7 +63,9 @@ def query_service_metrics(service_name, query):
     response.raise_for_status()
     result = response.json()
     if result.get("data", {}).get("result"):
-        return float(result["data"]["result"][0]["value"][1])
+        result_value = float(result["data"]["result"][0]["values"][1])
+        logger.debug(f"{service_name}: Executed query: {query} with result: {result_value}")
+        return result_value
 
     logger.debug(f"{service_name}: No data found")
     return None
