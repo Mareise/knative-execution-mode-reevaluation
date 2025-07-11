@@ -56,6 +56,7 @@ class ServiceMetricsReporter:
 
 
 def query_service_metrics(service_name, query):
+    logger.debug(f"{service_name}: Executing query: {query}")
     response = requests.get(
         f"{PROMETHEUS_URL}/api/v1/query",
         params={"query": query}
