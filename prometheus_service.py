@@ -14,7 +14,7 @@ class ServiceMetricsReporter:
     def __init__(self, service: KnService, window_minutes):
         self.service = service
         self.window = window_minutes
-        self.results = {}
+        self.results: dict[str, QUERY_RESULT | None] = {}
 
     def run_queries(self, query_functions: dict):
         for name, query_fn in query_functions.items():
@@ -61,7 +61,15 @@ class ServiceMetricsReporter:
     def __str__(self):
         lines = [f"Service: {self.service.name}"]
         for name, value in self.results.items():
-            lines.append(f"  {name}: {value}")
+            if isinstance(value, QUERY_RESULT):
+                lines.append(f"  {name}:")
+                for field_name, field_value in value._asdict().items():
+                    if isinstance(field_value, float):
+                        lines.append(f"    {field_name}: {field_value:.2f}")
+                    else:
+                        lines.append(f"    {field_name}: {field_value}")
+            else:
+                lines.append(f"  {name}: {value}")
         return "\n".join(lines)
 
 

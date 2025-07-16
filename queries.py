@@ -27,10 +27,10 @@ QUERY_THRESHOLD = namedtuple("QueryThreshold", ["upper_bound", "upper_bound_when
 
 # TODO Upper bound sollte glaub ich höher sein (cold start ziemlich lange (model fetching))
 QUERY_THRESHOLDS = {
-    QueryNames.LATENCY_AVG: QUERY_THRESHOLD(upper_bound=100, upper_bound_when_low_request_rate=200, lower_bound=0.5,
-                                            performance_change_gap=20),
-    QueryNames.REQUEST_RATE: QUERY_THRESHOLD(upper_bound=100, upper_bound_when_low_request_rate=None, lower_bound=1,
-                                             performance_change_gap=0.3),
+    QueryNames.LATENCY_AVG: QUERY_THRESHOLD(upper_bound=30, upper_bound_when_low_request_rate=100, lower_bound=None,
+                                            performance_change_gap=10),
+    QueryNames.REQUEST_RATE: QUERY_THRESHOLD(upper_bound=None, upper_bound_when_low_request_rate=None, lower_bound=0.01,
+                                             performance_change_gap=None),
 }
 
 LONG_INTERVAL_MULTIPLIER = 50
