@@ -10,12 +10,12 @@ class QueryNames(Enum):
 
 QUERIES = {
     # TODO pod waiting time
-    QueryNames.LATENCY_AVG: lambda service_name, window="5m": (
-        f'rate(activator_request_latencies_sum{{service_name="{service_name}"}}[{window}]) / '
-        f'rate(activator_request_latencies_count{{service_name="{service_name}"}}[{window}])'
+    QueryNames.LATENCY_AVG: lambda revision_name, window="5m": (
+        f'rate(activator_request_latencies_sum{{revision_name="{revision_name}"}}[{window}]) / '
+        f'rate(activator_request_latencies_count{{revision_name="{revision_name}"}}[{window}])'
     ),
-    QueryNames.REQUEST_RATE: lambda service_name, window="5m": (
-        f'rate(activator_request_count{{service_name="{service_name}"}}[{window}])'
+    QueryNames.REQUEST_RATE: lambda revision_name, window="5m": (
+        f'rate(activator_request_count{{revision_name="{revision_name}"}}[{window}])'
     ),
 }
 
