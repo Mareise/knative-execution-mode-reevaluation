@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from knative_service import KnService
 from logger import get_logger
-from queries import QUERY_RESULT
+from queries import QUERY_RESULT, LONG_INTERVAL_MULTIPLIER
 
 logger = get_logger(__name__)
 PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
@@ -19,11 +19,17 @@ class ServiceMetricsReporter:
     def run_queries(self, query_functions: dict):
         for name, query_fn in query_functions.items():
             try:
+                # Query for long interval
+                query_window = f"{self.window * LONG_INTERVAL_MULTIPLIER}m"
+                query = query_fn(self.service.name, query_window)
+                long_query_result = query_service_metrics(self.service.name, query)
+
+                # Query for short interval
                 query_window = f"{self.window}m"
                 query = query_fn(self.service.name, query_window)
-                query_result = query_service_metrics(self.service.name, query)
+                short_query_result = query_service_metrics(self.service.name, query)
 
-                result = QUERY_RESULT(query_result, None)
+                result = QUERY_RESULT(short_query_result, long_query_result, None)
 
                 # Check for recent execution mode update
                 last_update = self.service.last_execution_mode_update_time
@@ -35,7 +41,7 @@ class ServiceMetricsReporter:
                     if last_modified_window < self.window:
                         new_mode_query = query_fn(self.service.name, f"{last_modified_window}m")
                         new_mode_query_result = query_service_metrics(self.service.name, new_mode_query)
-                        result = QUERY_RESULT(query_result, new_mode_query_result)
+                        result = QUERY_RESULT(short_query_result, long_query_result, new_mode_query_result)
 
                 self.results[name] = result
 

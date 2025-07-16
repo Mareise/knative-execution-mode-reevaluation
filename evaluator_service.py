@@ -1,11 +1,10 @@
-from datetime import datetime, timezone
 import os
 
 from constants import ExecutionModes
 from knative_service import patch_knative_service, KnService
 from logger import get_logger
-from prometheus_service import query_service_metrics, ServiceMetricsReporter
-from queries import QUERIES, QUERY_THRESHOLDS, QUERY_RESULT
+from prometheus_service import ServiceMetricsReporter
+from queries import QUERY_THRESHOLDS, QueryNames
 
 logger = get_logger(__name__)
 
@@ -13,47 +12,74 @@ WINDOW_SECONDS = int(os.environ.get("WINDOW_MINUTES", "30"))
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
-    query_name = "latency_avg"  # TODO only for now
-    query_result = reporter.get_result(query_name)
-    if query_result is None or query_result.query_result is None:
+    latency_query_result = reporter.get_result(QueryNames.LATENCY_AVG)
+    if latency_query_result is None or latency_query_result.query_result_short_interval is None:
         return
 
-    if query_result.new_mode_query_result is not None:
+    # If there was an execution mode change in the last window, we check if it got better or not
+    if latency_query_result.new_mode_query_result is not None:
         # If the new mode is significantly worse than the old one we switch back
-        if query_result.new_mode_query_result - QUERY_THRESHOLDS[
-            query_name].performance_change_gap > query_result.query_result:
+        if latency_query_result.new_mode_query_result - QUERY_THRESHOLDS[
+            QueryNames.LATENCY_AVG].performance_change_gap > latency_query_result.query_result_short_interval:
             logger.info(
-                f"{service.name}: WARNING: The new mode is worse than the old one, switching back")
+                f"{service.name}: WARNING: The new mode is worse than the old one, switching back"
+            )
             switch_execution_mode(service)
             return
 
         # If the new mode (gpu) is just a bit better than the old one (cpu) we switch back to cpu # TODO maybe use seperate threshold for this?
-        elif (query_result.new_mode_query_result + QUERY_THRESHOLDS[
-            query_name].performance_change_gap > query_result.query_result
-              and service.execution_mode == ExecutionModes.GPU_PREFERRED):
+        elif (
+                latency_query_result.new_mode_query_result + QUERY_THRESHOLDS[
+            QueryNames.LATENCY_AVG].performance_change_gap > latency_query_result.query_result_short_interval and
+                service.execution_mode == ExecutionModes.GPU_PREFERRED
+        ):
             logger.info(
-                f"{service.name}: WARNING: The new mode is just a bit better than the old one, switching back to cpu")
+                f"{service.name}: WARNING: The new mode is just a bit better than the old one, switching back to cpu"
+            )
             switch_execution_mode(service)
             return
 
-    if query_result.query_result > QUERY_THRESHOLDS[
-        query_name].upper_bound and service.execution_mode == ExecutionModes.CPU_PREFERRED:
+    if (
+            latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound and
+            service.execution_mode == ExecutionModes.CPU_PREFERRED
+    ):
         logger.info(
-            f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[query_name].upper_bound})")
+            f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})"
+        )
         switch_execution_mode(service)
         return
 
-    if query_result.query_result < QUERY_THRESHOLDS[
-        query_name].lower_bound and service.execution_mode == ExecutionModes.GPU_PREFERRED:
+    # That doesnt make sense because gpu will always be faster or equal to cpu ???
+    # if latency_query_result.query_result < QUERY_THRESHOLDS[
+    #     QueryNames.LATENCY_AVG].lower_bound and service.execution_mode == ExecutionModes.GPU_PREFERRED:
+    #     logger.info(
+    #         f"{service.name}: WARNING: Result is below lower bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})")
+    #     switch_execution_mode(service)
+    #     return
+
+    # Checking if the request rate is below the threshold and if so switch to cpu when latency is not too high
+    request_rate_query_result = reporter.get_result(QueryNames.REQUEST_RATE).query_result_short_interval
+    latency_long_interval_query_result = reporter.get_result(QueryNames.LATENCY_AVG).query_result_long_interval
+    if (
+            service.execution_mode == ExecutionModes.GPU_PREFERRED and
+            request_rate_query_result is not None and
+            latency_long_interval_query_result is not None and
+            request_rate_query_result < QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound and
+            latency_long_interval_query_result < QUERY_THRESHOLDS[
+        QueryNames.LATENCY_AVG].upper_bound_when_low_request_rate
+    ):
         logger.info(
-            f"{service.name}: WARNING: Result is below lower bound ({QUERY_THRESHOLDS[query_name].upper_bound})")
+            f"{service.name}: WARNING: Request rate is below lower bound "
+            f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
+        )
         switch_execution_mode(service)
-        return
 
 
 def switch_execution_mode(service: KnService):
     # TODO maybe it makes sense to set it to CPU and GPU (see tree)
     if service.execution_mode == ExecutionModes.CPU_PREFERRED:
         patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, service.namespace)
+        logger.info(f"{service.name}: Switched to GPU_PREFERRED mode")
     elif service.execution_mode == ExecutionModes.GPU_PREFERRED:
         patch_knative_service(service.name, 0, ExecutionModes.CPU_PREFERRED, service.namespace)
+        logger.info(f"{service.name}: Switched to CPU_PREFERRED mode")

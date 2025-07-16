@@ -26,7 +26,7 @@ def get_knative_services():
             item["metadata"]["annotations"].get("lastExecutionModeUpdateTime", None)
         ) for item in kn_objects["items"]]
 
-    logger.info(kn_services)
+    logger.debug(kn_services)
 
     return kn_services
 
