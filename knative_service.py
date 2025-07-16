@@ -4,7 +4,8 @@ from logger import get_logger
 from datetime import datetime, timezone
 
 logger = get_logger(__name__)
-KnService = namedtuple("KnService", ["name", "namespace", "execution_mode", "last_execution_mode_update_time"])
+KnService = namedtuple("KnService",
+                       ["name", "revision_name", "namespace", "execution_mode", "last_execution_mode_update_time"])
 
 
 def get_knative_services():
@@ -21,6 +22,7 @@ def get_knative_services():
     kn_services = [
         KnService(
             item["metadata"]["name"],
+            item["status"]["latestCreatedRevisionName"],
             item["metadata"]["namespace"],
             item["metadata"]["annotations"]["executionMode"],
             item["metadata"]["annotations"].get("lastExecutionModeUpdateTime", None)

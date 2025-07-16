@@ -21,13 +21,13 @@ class ServiceMetricsReporter:
             try:
                 # Query for long interval
                 query_window = f"{self.window * LONG_INTERVAL_MULTIPLIER}m"
-                query = query_fn(self.service.name, query_window)
-                long_query_result = query_service_metrics(self.service.name, query)
+                query = query_fn(self.service.revision_name, query_window)
+                long_query_result = query_service_metrics(self.service.revision_name, query)
 
                 # Query for short interval
                 query_window = f"{self.window}m"
-                query = query_fn(self.service.name, query_window)
-                short_query_result = query_service_metrics(self.service.name, query)
+                query = query_fn(self.service.revision_name, query_window)
+                short_query_result = query_service_metrics(self.service.revision_name, query)
 
                 result = QUERY_RESULT(short_query_result, long_query_result, None)
 
@@ -39,15 +39,15 @@ class ServiceMetricsReporter:
                     )
                     logger.debug(f"Last modified window: {last_modified_window}")
                     if last_modified_window < self.window:
-                        new_mode_query = query_fn(self.service.name, f"{last_modified_window}m")
-                        new_mode_query_result = query_service_metrics(self.service.name, new_mode_query)
+                        new_mode_query = query_fn(self.service.revision_name, f"{last_modified_window}m")
+                        new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
                         result = QUERY_RESULT(short_query_result, long_query_result, new_mode_query_result)
 
                 self.results[name] = result
 
             except Exception as e:
                 logger.error(
-                    f"Error running query '{name}' for service '{self.service.name}': {e}",
+                    f"Error running query '{name}' for service '{self.service.revision_name}': {e}",
                     exc_info=True
                 )
                 self.results[name] = None
@@ -59,7 +59,7 @@ class ServiceMetricsReporter:
         return self.results
 
     def __str__(self):
-        lines = [f"Service: {self.service.name}"]
+        lines = [f"Service: {self.service.revision_name}"]
         for name, value in self.results.items():
             if isinstance(value, QUERY_RESULT):
                 lines.append(f"  {name}:")
