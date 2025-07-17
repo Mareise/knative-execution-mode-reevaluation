@@ -40,15 +40,15 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
     #         switch_execution_mode(service, reporter)
     #         return
     #
-    # if (
-    #         latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound and
-    #         service.execution_mode == ExecutionModes.CPU_PREFERRED
-    # ):
-    #     logger.info(
-    #         f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})"
-    #     )
-    #     switch_execution_mode(service, reporter)
-    #     return
+    if (
+            latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound and
+            service.execution_mode == ExecutionModes.CPU_PREFERRED
+    ):
+        logger.info(
+            f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})"
+        )
+        switch_execution_mode(service, reporter)
+        return
 
     # That doesnt make sense because gpu will always be faster or equal to cpu ???
     # if latency_query_result.query_result < QUERY_THRESHOLDS[
