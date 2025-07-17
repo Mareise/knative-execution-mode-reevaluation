@@ -2,6 +2,7 @@ import os
 import requests
 from datetime import datetime, timezone
 
+from constants import ExecutionModes
 from knative_service import KnService
 from logger import get_logger
 from queries import QUERY_RESULT, LONG_INTERVAL_MULTIPLIER
@@ -46,6 +47,7 @@ class ServiceMetricsReporter:
                         new_mode_query = query_fn(self.service.revision_name, short_interval_query_window)
                         new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
 
+                        # TODO i need to rethink this
                         result = QUERY_RESULT(old_revision_short_query_result, old_revision_long_query_result,
                                               new_mode_query_result)
 
