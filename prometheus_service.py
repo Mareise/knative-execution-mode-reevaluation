@@ -19,17 +19,8 @@ class ServiceMetricsReporter:
     def run_queries(self, query_functions: dict):
         for name, query_fn in query_functions.items():
             try:
-                # Query for long interval
-                query_window = f"{self.window * LONG_INTERVAL_MULTIPLIER}m"
-                query = query_fn(self.service.revision_name, query_window)
-                long_query_result = query_service_metrics(self.service.revision_name, query)
-
-                # Query for short interval
-                query_window = f"{self.window}m"
-                query = query_fn(self.service.revision_name, query_window)
-                short_query_result = query_service_metrics(self.service.revision_name, query)
-
-                result = QUERY_RESULT(short_query_result, long_query_result, None)
+                long_interval_query_window = f"{self.window * LONG_INTERVAL_MULTIPLIER}m"
+                short_interval_query_window = f"{self.window}m"
 
                 # Check for recent execution mode update
                 last_update = self.service.last_execution_mode_update_time
@@ -39,10 +30,37 @@ class ServiceMetricsReporter:
                     )
                     logger.debug(f"Last modified window: {last_modified_window}")
                     if last_modified_window < self.window:
-                        new_mode_query = query_fn(self.service.revision_name, f"{last_modified_window}m")
-                        new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
-                        result = QUERY_RESULT(short_query_result, long_query_result, new_mode_query_result)
+                        old_revision_name = decrement_revision_name(self.service.revision_name)
 
+                        # Query for long interval when there was a change in the window interval
+                        old_revision_long_query = query_fn(old_revision_name, long_interval_query_window)
+                        old_revision_long_query_result = query_service_metrics(old_revision_name,
+                                                                               old_revision_long_query)
+
+                        # Query for short interval when there was a change in the window interval
+                        old_revision_short_query = query_fn(old_revision_name, short_interval_query_window)
+                        old_revision_short_query_result = query_service_metrics(old_revision_name,
+                                                                                old_revision_short_query)
+
+                        # Query for new mode when there was a change in the window interval
+                        new_mode_query = query_fn(self.service.revision_name, short_interval_query_window)
+                        new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
+
+                        result = QUERY_RESULT(old_revision_short_query_result, old_revision_long_query_result,
+                                              new_mode_query_result)
+
+                        self.results[name] = result
+                        return
+
+                # Query for long interval
+                long_query = query_fn(self.service.revision_name, long_interval_query_window)
+                long_query_result = query_service_metrics(self.service.revision_name, long_query)
+
+                # Query for short interval
+                short_query = query_fn(self.service.revision_name, short_interval_query_window)
+                short_query_result = query_service_metrics(self.service.revision_name, short_query)
+
+                result = QUERY_RESULT(short_query_result, long_query_result, None)
                 self.results[name] = result
 
             except Exception as e:
@@ -88,3 +106,10 @@ def query_service_metrics(service_name, query):
 
     logger.debug(f"{service_name}: No data found")
     return None
+
+
+def decrement_revision_name(s):
+    prefix, num = s.rsplit('-', 1)  # Split into 'service-name' and 'number'
+    new_num = int(num) - 1
+    new_num_str = f"{new_num:0{len(num)}d}"
+    return f"{prefix}-{new_num_str}"
