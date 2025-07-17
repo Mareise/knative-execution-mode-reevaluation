@@ -18,37 +18,37 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
 
     # TODO do i really need that when i can use the latencies stored in the service itself???
     # If there was an execution mode change in the last window, we check if it got better or not
-    if latency_query_result.new_mode_query_result is not None:
-        # If the new mode is significantly worse than the old one we switch back
-        if latency_query_result.new_mode_query_result - QUERY_THRESHOLDS[
-            QueryNames.LATENCY_AVG].performance_change_gap > latency_query_result.query_result_short_interval:
-            logger.info(
-                f"{service.name}: WARNING: The new mode is worse than the old one, switching back"
-            )
-            switch_execution_mode(service, reporter)
-            return
-
-        # If the new mode (gpu) is just a bit better than the old one (cpu) we switch back to cpu # TODO maybe use seperate threshold for this?
-        elif (
-                latency_query_result.new_mode_query_result + QUERY_THRESHOLDS[
-            QueryNames.LATENCY_AVG].performance_change_gap > latency_query_result.query_result_short_interval and
-                service.execution_mode == ExecutionModes.GPU_PREFERRED
-        ):
-            logger.info(
-                f"{service.name}: WARNING: The new mode is just a bit better than the old one, switching back to cpu"
-            )
-            switch_execution_mode(service, reporter)
-            return
-
-    if (
-            latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound and
-            service.execution_mode == ExecutionModes.CPU_PREFERRED
-    ):
-        logger.info(
-            f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})"
-        )
-        switch_execution_mode(service, reporter)
-        return
+    # if latency_query_result.new_mode_query_result is not None:
+    #     # If the new mode is significantly worse than the old one we switch back
+    #     if latency_query_result.new_mode_query_result - QUERY_THRESHOLDS[
+    #         QueryNames.LATENCY_AVG].performance_change_gap > latency_query_result.query_result_short_interval:
+    #         logger.info(
+    #             f"{service.name}: WARNING: The new mode is worse than the old one, switching back"
+    #         )
+    #         switch_execution_mode(service, reporter)
+    #         return
+    #
+    #     # If the new mode (gpu) is just a bit better than the old one (cpu) we switch back to cpu # TODO maybe use seperate threshold for this?
+    #     elif (
+    #             latency_query_result.new_mode_query_result + QUERY_THRESHOLDS[
+    #         QueryNames.LATENCY_AVG].performance_change_gap > latency_query_result.query_result_short_interval and
+    #             service.execution_mode == ExecutionModes.GPU_PREFERRED
+    #     ):
+    #         logger.info(
+    #             f"{service.name}: WARNING: The new mode is just a bit better than the old one, switching back to cpu"
+    #         )
+    #         switch_execution_mode(service, reporter)
+    #         return
+    #
+    # if (
+    #         latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound and
+    #         service.execution_mode == ExecutionModes.CPU_PREFERRED
+    # ):
+    #     logger.info(
+    #         f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})"
+    #     )
+    #     switch_execution_mode(service, reporter)
+    #     return
 
     # That doesnt make sense because gpu will always be faster or equal to cpu ???
     # if latency_query_result.query_result < QUERY_THRESHOLDS[
