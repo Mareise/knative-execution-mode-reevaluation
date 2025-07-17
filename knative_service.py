@@ -65,13 +65,15 @@ def patch_knative_service(service_name, gpu_number, execution_mode, gpu_latency,
     new_gpu_latency = (
         max(gpu_latency, given_gpu_latency)
         if gpu_latency is not None and given_gpu_latency is not None
-        else None
+        else gpu_latency if gpu_latency is not None
+        else given_gpu_latency
     )
 
     new_cpu_latency = (
         max(cpu_latency, given_cpu_latency)
         if cpu_latency is not None and given_cpu_latency is not None
-        else None
+        else cpu_latency if cpu_latency is not None
+        else given_cpu_latency
     )
 
     patch_body = {

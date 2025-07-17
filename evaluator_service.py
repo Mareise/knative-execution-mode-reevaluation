@@ -81,31 +81,32 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         switch_execution_mode(service, reporter)
         return
 
-    # Checking if the request rate is below the threshold and if so switch to cpu when latency is not too high
-    request_rate_query_result = reporter.get_result(QueryNames.REQUEST_RATE).query_result_short_interval
-    latency_long_interval_query_result = reporter.get_result(QueryNames.LATENCY_AVG).query_result_long_interval
-    if (
-            service.execution_mode == ExecutionModes.GPU_PREFERRED and
-            request_rate_query_result is not None and
-            request_rate_query_result < QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
-    ):
+    if reporter.get_result(QueryNames.REQUEST_RATE) is not None:
+        # Checking if the request rate is below the threshold and if so switch to cpu when latency is not too high
+        request_rate_query_result = reporter.get_result(QueryNames.REQUEST_RATE).query_result_short_interval
+        latency_long_interval_query_result = reporter.get_result(QueryNames.LATENCY_AVG).query_result_long_interval
         if (
-                latency_long_interval_query_result is not None and
-                latency_long_interval_query_result < QUERY_THRESHOLDS[
-            QueryNames.LATENCY_AVG].upper_bound_when_low_request_rate
+                service.execution_mode == ExecutionModes.GPU_PREFERRED and
+                request_rate_query_result is not None and
+                request_rate_query_result < QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
         ):
-            logger.info(
-                f"{service.name}: WARNING: Request rate is below lower bound "
-                f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
-                f" and the upper_bound_when_low_request_rate is over the threshold. "
-            )
-            switch_execution_mode(service)
-        elif latency_long_interval_query_result is None:
-            logger.info(
-                f"{service.name}: WARNING: Request rate is below lower bound "
-                f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
-            )
-            switch_execution_mode(service)
+            if (
+                    latency_long_interval_query_result is not None and
+                    latency_long_interval_query_result < QUERY_THRESHOLDS[
+                QueryNames.LATENCY_AVG].upper_bound_when_low_request_rate
+            ):
+                logger.info(
+                    f"{service.name}: WARNING: Request rate is below lower bound "
+                    f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
+                    f" and the upper_bound_when_low_request_rate is over the threshold. "
+                )
+                switch_execution_mode(service)
+            elif latency_long_interval_query_result is None:
+                logger.info(
+                    f"{service.name}: WARNING: Request rate is below lower bound "
+                    f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
+                )
+                switch_execution_mode(service)
 
 
 def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
