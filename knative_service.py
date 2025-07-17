@@ -57,13 +57,22 @@ def patch_knative_service(service_name, gpu_number, execution_mode, gpu_latency,
     )
 
     current_image = current_service["spec"]["template"]["spec"]["containers"][0]["image"]
-    given_gpu_latency = float(current_service["metadata"]["annotations"].get("gpuLatency", None)) if \
-        current_service["metadata"]["annotations"].get("gpuLatency", None) is not None else None
-    given_cpu_latency = float(current_service["metadata"]["annotations"].get("cpuLatency", None)) if \
-        current_service["metadata"]["annotations"].get("cpuLatency", None) is not None else None
 
-    new_gpu_latency = max(gpu_latency, given_gpu_latency) if gpu_latency is not None else None
-    new_cpu_latency = max(cpu_latency, given_cpu_latency) if cpu_latency is not None else None
+    annotations = current_service["metadata"].get("annotations", {})
+    given_gpu_latency = float(annotations["gpuLatency"]) if "gpuLatency" in annotations else None
+    given_cpu_latency = float(annotations["cpuLatency"]) if "cpuLatency" in annotations else None
+
+    new_gpu_latency = (
+        max(gpu_latency, given_gpu_latency)
+        if gpu_latency is not None and given_gpu_latency is not None
+        else None
+    )
+
+    new_cpu_latency = (
+        max(cpu_latency, given_cpu_latency)
+        if cpu_latency is not None and given_cpu_latency is not None
+        else None
+    )
 
     patch_body = {
         "metadata": {
