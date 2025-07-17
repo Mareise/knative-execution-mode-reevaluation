@@ -84,11 +84,15 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             switch_execution_mode(service)
 
 
-def switch_execution_mode(service: KnService):
+def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
     # TODO maybe it makes sense to set it to CPU and GPU (see tree)
     if service.execution_mode == ExecutionModes.CPU_PREFERRED:
-        patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, service.namespace)
+        patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, None,
+                              reporter.get_result(QueryNames.LATENCY_AVG).query_result_short_interval,
+                              service.namespace)
         logger.info(f"{service.name}: Switched to GPU_PREFERRED mode")
     elif service.execution_mode == ExecutionModes.GPU_PREFERRED:
-        patch_knative_service(service.name, 0, ExecutionModes.CPU_PREFERRED, service.namespace)
+        patch_knative_service(service.name, 0, ExecutionModes.CPU_PREFERRED,
+                              reporter.get_result(QueryNames.LATENCY_AVG).query_result_short_interval, None,
+                              service.namespace)
         logger.info(f"{service.name}: Switched to CPU_PREFERRED mode")
