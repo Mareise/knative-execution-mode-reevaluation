@@ -33,11 +33,15 @@ def get_knative_services():
             item["metadata"]["name"],
             item["status"]["latestReadyRevisionName"],
             item["metadata"]["namespace"],
-            item["metadata"]["annotations"]["executionMode"],
-            item["metadata"]["annotations"].get("lastExecutionModeUpdateTime", None),
-            item["metadata"]["annotations"].get("gpuLatency", None),
-            item["metadata"]["annotations"].get("cpuLatency", None),
-        ) for item in kn_objects["items"]]
+            item["metadata"]["annotations"].get("executionMode"),
+            item["metadata"]["annotations"].get("lastExecutionModeUpdateTime"),
+            float(item["metadata"]["annotations"]["gpuLatency"]) if item["metadata"]["annotations"].get(
+                "gpuLatency") is not None else None,
+            float(item["metadata"]["annotations"]["cpuLatency"]) if item["metadata"]["annotations"].get(
+                "cpuLatency") is not None else None,
+        )
+        for item in kn_objects["items"]
+    ]
 
     logger.debug(kn_services)
 
