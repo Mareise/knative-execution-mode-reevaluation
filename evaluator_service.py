@@ -19,8 +19,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             service.cpu_latency is not None and
             service.gpu_latency is not None and
             service.cpu_latency >= 100000 and
-            service.cpu_latency > service.gpu_latency * QUERY_THRESHOLDS[
-        QueryNames.LATENCY_P95].performance_change_gap
+            service.cpu_latency - QUERY_THRESHOLDS[QueryNames.LATENCY_P95].performance_change_gap > service.gpu_latency
     ):
         patch_knative_service(
             service.name,
