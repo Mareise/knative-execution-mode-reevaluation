@@ -18,7 +18,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
     if (
             service.cpu_latency is not None and
             service.gpu_latency is not None and
-            service.cpu_latency == 100000.0 and
+            service.cpu_latency >= 100000 and
             service.cpu_latency > service.gpu_latency * QUERY_THRESHOLDS[
         QueryNames.LATENCY_P95].performance_change_gap
     ):
