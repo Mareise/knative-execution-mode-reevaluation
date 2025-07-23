@@ -67,7 +67,7 @@ def patch_knative_service(service_name, gpu_number, execution_mode, gpu_latency,
     given_cpu_latency = float(annotations["cpuLatency"]) if "cpuLatency" in annotations else None
 
     new_gpu_latency = (
-        max(gpu_latency, given_gpu_latency)
+        max(gpu_latency, given_gpu_latency)  # TODO really max??
         if gpu_latency is not None and given_gpu_latency is not None
         else gpu_latency if gpu_latency is not None
         else given_gpu_latency
