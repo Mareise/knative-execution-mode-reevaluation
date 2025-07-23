@@ -48,6 +48,15 @@ QUERY_THRESHOLDS = {
             lower_bound=None,
             performance_change_gap=int(os.environ.get("THRESHOLD_LATENCY_PERFORMANCE_CHANGE_GAP", "200"))
         ),
+    QueryNames.LATENCY_P95:
+        QUERY_THRESHOLD(
+            upper_bound=int(os.environ.get("THRESHOLD_LATENCY_UPPER", "1000")),
+            upper_bound_when_low_request_rate=int(
+                os.environ.get("THRESHOLD_LATENCY_UPPER_WHEN_LOW_REQUEST_RATE", "2000")
+            ),
+            lower_bound=None,
+            performance_change_gap=int(os.environ.get("THRESHOLD_LATENCY_PERFORMANCE_CHANGE_GAP", "200"))
+        ),
     QueryNames.REQUEST_RATE:
         QUERY_THRESHOLD(
             upper_bound=None,

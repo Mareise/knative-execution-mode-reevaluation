@@ -81,8 +81,8 @@ def patch_knative_service(service_name, gpu_number, execution_mode, gpu_latency,
             "annotations": {
                 "executionMode": execution_mode,
                 "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat(),
-                "gpuLatency": new_gpu_latency,
-                "cpuLatency": new_cpu_latency,
+                "gpuLatency": str(new_gpu_latency),
+                "cpuLatency": str(new_cpu_latency),
             },
         },
         "spec": {
