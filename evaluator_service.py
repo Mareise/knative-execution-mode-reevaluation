@@ -13,35 +13,29 @@ WINDOW_MINUTES = int(os.environ.get("WINDOW_MINUTES", "30"))
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
+    # Case 1: When both modes are saved in the service and cpu mode is slower than gpu
+    # and cpu mode is the highest bucket boundary defined in the histogram, make a final decision and change to GPU
+    if (
+            service.cpu_latency is not None and
+            service.gpu_latency is not None and
+            service.cpu_latency == 100000.0 and
+            service.cpu_latency > service.gpu_latency * QUERY_THRESHOLDS[
+        QueryNames.REQUEST_RATE].performance_change_factor
+    ):
+        patch_knative_service(
+            service.name,
+            1,
+            ExecutionModes.GPU,
+            None,
+            None,
+            service.namespace
+        )
+        logger.info(f"{service.name}: Switched to final GPU mode")
+        return
+
     latency_query_result = reporter.get_result(QueryNames.LATENCY_P95)
     if latency_query_result is not None and latency_query_result.query_result_short_interval is not None:
-
-        # TODO do i really need that when i can use the latencies stored in the service itself???
-        # If there was an execution mode change in the last window, we check if it got better or not
-        # if latency_query_result.new_mode_query_result is not None:
-        #     # If the new mode is significantly worse than the old one we switch back
-        #     if latency_query_result.new_mode_query_result - QUERY_THRESHOLDS[
-        #         QueryNames.LATENCY_P95].performance_change_gap > latency_query_result.query_result_short_interval:
-        #         logger.info(
-        #             f"{service.name}: WARNING: The new mode is worse than the old one, switching back"
-        #         )
-        #         switch_execution_mode(service, reporter)
-        #         return
-        #
-        #     # If the new mode (gpu) is just a bit better than the old one (cpu) we switch back to cpu # TODO maybe use seperate threshold for this?
-        #     elif (
-        #             latency_query_result.new_mode_query_result + QUERY_THRESHOLDS[
-        #         QueryNames.LATENCY_P95].performance_change_gap > latency_query_result.query_result_short_interval and
-        #             service.execution_mode == ExecutionModes.GPU_PREFERRED
-        #     ):
-        #         logger.info(
-        #             f"{service.name}: WARNING: The new mode is just a bit better than the old one, switching back to cpu"
-        #         )
-        #         switch_execution_mode(service, reporter)
-        #         return
-        #
-
-        # Case 1: Cpu is too slow
+        # Case 2: Cpu is too slow
         if (
                 service.execution_mode == ExecutionModes.CPU_PREFERRED and
                 latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_P95].upper_bound
@@ -52,9 +46,9 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             switch_execution_mode(service, reporter)
             return
 
-        # Case 2: If there was a recent change # TODO have to check if this makes sense
+        # Case 3: If there was a recent change # TODO have to check if this makes sense
         if is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES):
-            # Case 2.1: Function was executed on a cpu already, and gpu is not much faster
+            # Case 3.1: Function was executed on a cpu already, and gpu is not much faster
             if (
                     service.execution_mode == ExecutionModes.GPU_PREFERRED and
                     service.cpu_latency is not None and
@@ -67,7 +61,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 switch_execution_mode(service, reporter)
                 return
 
-            # Case 2.2: Function was executed on a gpu already, and gpu is significantly faster than cpu
+            # Case 3.2: Function was executed on a gpu already, and gpu is significantly faster than cpu
             if (
                     service.execution_mode == ExecutionModes.CPU_PREFERRED and
                     service.gpu_latency is not None and
@@ -120,20 +114,6 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 )
                 switch_execution_mode(service, reporter)
                 return
-
-        # Case 5: When both modes are saved in the service and cpu mode is slower than gpu
-        # and cpu mode is the highest bucket boundary defined in the histogram, make a final decision and change to GPU
-        if (
-                service.cpu_latency is not None and
-                service.gpu_latency is not None and
-                service.cpu_latency == 100000.0 and
-                service.cpu_latency > service.gpu_latency * QUERY_THRESHOLDS[
-            QueryNames.REQUEST_RATE].performance_change_factor
-        ):
-            patch_knative_service(service.name, 1, ExecutionModes.GPU,
-                                  None, None,
-                                  service.namespace)
-            logger.info(f"{service.name}: Switched to final GPU mode")
 
 
 def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
