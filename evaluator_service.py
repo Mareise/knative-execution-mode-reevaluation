@@ -5,10 +5,11 @@ from knative_service import patch_knative_service, KnService
 from logger import get_logger
 from prometheus_service import ServiceMetricsReporter
 from queries import QUERY_THRESHOLDS, QueryNames
+from datetime import datetime, timezone
 
 logger = get_logger(__name__)
 
-WINDOW_SECONDS = int(os.environ.get("WINDOW_MINUTES", "30"))
+WINDOW_MINUTES = int(os.environ.get("WINDOW_MINUTES", "30"))
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
@@ -51,31 +52,39 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             switch_execution_mode(service, reporter)
             return
 
-        # Case 2: Function was executed on a cpu already, and gpu is not much faster
-        if (
-                service.execution_mode == ExecutionModes.GPU_PREFERRED and
-                service.cpu_latency is not None and
-                latency_query_result.query_result_short_interval + QUERY_THRESHOLDS[
-            QueryNames.LATENCY_P95].performance_change_gap >= service.cpu_latency
-        ):
-            logger.info(
-                f"{service.name}: WARNING: GPU is not significantly faster than CPU, switching back to CPU"
+        # Case 2: If there was a recent change # TODO have to check if this makes sense
+        last_update = service.last_execution_mode_update_time
+        if last_update is not None:
+            last_modified_window = int(
+                (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
             )
-            switch_execution_mode(service, reporter)
-            return
+            logger.debug(f"Last modified window: {last_modified_window}")
+            if last_modified_window < WINDOW_MINUTES:
+                # Case 2.1: Function was executed on a cpu already, and gpu is not much faster
+                if (
+                        service.execution_mode == ExecutionModes.GPU_PREFERRED and
+                        service.cpu_latency is not None and
+                        latency_query_result.query_result_short_interval + QUERY_THRESHOLDS[
+                    QueryNames.LATENCY_P95].performance_change_gap >= service.cpu_latency
+                ):
+                    logger.info(
+                        f"{service.name}: WARNING: GPU is not significantly faster than CPU, switching back to CPU"
+                    )
+                    switch_execution_mode(service, reporter)
+                    return
 
-        # Case 3: Function was executed on a gpu already, and gpu is significantly faster than cpu
-        if (
-                service.execution_mode == ExecutionModes.CPU_PREFERRED and
-                service.gpu_latency is not None and
-                latency_query_result.query_result_short_interval - QUERY_THRESHOLDS[
-            QueryNames.LATENCY_P95].performance_change_gap >= service.gpu_latency
-        ):
-            logger.info(
-                f"{service.name}: WARNING: GPU is significantly faster than CPU, switching to GPU"
-            )
-            switch_execution_mode(service, reporter)
-            return
+                # Case 2.2: Function was executed on a gpu already, and gpu is significantly faster than cpu
+                if (
+                        service.execution_mode == ExecutionModes.CPU_PREFERRED and
+                        service.gpu_latency is not None and
+                        latency_query_result.query_result_short_interval - QUERY_THRESHOLDS[
+                    QueryNames.LATENCY_P95].performance_change_gap >= service.gpu_latency
+                ):
+                    logger.info(
+                        f"{service.name}: WARNING: GPU is significantly faster than CPU, switching to GPU"
+                    )
+                    switch_execution_mode(service, reporter)
+                    return
 
     # Case 4: GPU_PREFERRED mode - consider switching to CPU based on request rate and latency
     if service.execution_mode == ExecutionModes.GPU_PREFERRED:

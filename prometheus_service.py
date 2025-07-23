@@ -24,19 +24,19 @@ class ServiceMetricsReporter:
                 short_interval_query_window = f"{self.window}m"
 
                 # Check for recent execution mode update
-                last_update = self.service.last_execution_mode_update_time
-                if last_update:
-                    last_modified_window = int(
-                        (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
-                    )
-                    logger.debug(f"Last modified window: {last_modified_window}")
-                    if last_modified_window < self.window:
-                        # Query for new mode when there was a change in the window interval
-                        new_mode_query = query_fn(self.service.revision_name, short_interval_query_window)
-                        new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
-
-                        self.results[name] = QUERY_RESULT(new_mode_query_result, new_mode_query_result)
-                        return
+                # last_update = self.service.last_execution_mode_update_time
+                # if last_update:
+                #     last_modified_window = int(
+                #         (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
+                #     )
+                #     logger.debug(f"Last modified window: {last_modified_window}")
+                #     if last_modified_window < self.window:
+                #         # Query for new mode when there was a change in the window interval
+                #         new_mode_query = query_fn(self.service.revision_name, short_interval_query_window)
+                #         new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
+                #
+                #         self.results[name] = QUERY_RESULT(new_mode_query_result, new_mode_query_result)
+                #         return
 
                 # Query for long interval
                 long_query = query_fn(self.service.revision_name, long_interval_query_window)
@@ -92,10 +92,3 @@ def query_service_metrics(service_name, query):
 
     logger.debug(f"{service_name}: No data found")
     return None
-
-
-def decrement_revision_name(s):
-    prefix, num = s.rsplit('-', 1)  # Split into 'service-name' and 'number'
-    new_num = int(num) - 1
-    new_num_str = f"{new_num:0{len(num)}d}"
-    return f"{prefix}-{new_num_str}"
