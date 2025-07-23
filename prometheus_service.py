@@ -36,7 +36,7 @@ class ServiceMetricsReporter:
                 #         new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
                 #
                 #         self.results[name] = QUERY_RESULT(new_mode_query_result, new_mode_query_result)
-                #         return
+                #         return --> this return also breaks the for
 
                 # Query for long interval
                 long_query = query_fn(self.service.revision_name, long_interval_query_window)
