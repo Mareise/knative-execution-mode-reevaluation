@@ -1,6 +1,7 @@
 import os
 import time
 
+from constants import ExecutionModes
 from evaluator_service import evaluator
 from knative_service import get_knative_services
 from logger import get_logger
@@ -21,5 +22,6 @@ if __name__ == "__main__":
             reporter = ServiceMetricsReporter(service, WINDOW_MINUTES)
             reporter.run_queries(QUERIES)
             logger.info(reporter)
-            evaluator(service, reporter)
+            if service.execution_mode != ExecutionModes.CPU and service.execution_mode != ExecutionModes.GPU:  # TODO on final handover move up to exclude reporter
+                evaluator(service, reporter)
         time.sleep(INTERVAL_SECONDS)
