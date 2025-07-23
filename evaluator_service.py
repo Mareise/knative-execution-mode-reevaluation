@@ -80,7 +80,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 switch_execution_mode(service, reporter)
                 return
 
-    # Case 4: GPU_PREFERRED mode - consider switching to CPU based on request rate and latency
+    # Case 4: GPU_PREFERRED mode - consider switching to CPU based on request rate and latency (only when there was no recent update)
     if (
             service.execution_mode == ExecutionModes.GPU_PREFERRED and
             not is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES)
@@ -125,7 +125,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
 def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
     latency_result = reporter.get_result(QueryNames.LATENCY_P95)
 
-    latency_value = latency_result.query_result_short_interval if latency_result else None
+    latency_value = latency_result.query_result_long_interval if latency_result else None
 
     # TODO maybe it makes sense to set it to CPU and GPU (see tree)
     if service.execution_mode == ExecutionModes.CPU_PREFERRED:
