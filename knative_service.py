@@ -59,10 +59,8 @@ def patch_knative_service(service_name, gpu_number, execution_mode, gpu_latency,
     current_image = current_service["spec"]["template"]["spec"]["containers"][0]["image"]
 
     annotations = current_service["metadata"].get("annotations", {})
-    given_gpu_latency = float(annotations["gpuLatency"]) if "gpuLatency" in annotations and annotations[
-        "gpuLatency"] is not None else None
-    given_cpu_latency = float(annotations["cpuLatency"]) if "cpuLatency" in annotations and annotations[
-        "gpuLatency"] is not None else None
+    given_gpu_latency = float(annotations["gpuLatency"]) if "gpuLatency" in annotations else None
+    given_cpu_latency = float(annotations["cpuLatency"]) if "cpuLatency" in annotations else None
 
     new_gpu_latency = (
         max(gpu_latency, given_gpu_latency)
@@ -78,14 +76,20 @@ def patch_knative_service(service_name, gpu_number, execution_mode, gpu_latency,
         else given_cpu_latency
     )
 
+    annotations = {
+        "executionMode": execution_mode,
+        "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Conditionally add latencies
+    if new_gpu_latency is not None:
+        annotations["gpuLatency"] = str(new_gpu_latency)
+    if new_cpu_latency is not None:
+        annotations["cpuLatency"] = str(new_cpu_latency)
+
     patch_body = {
         "metadata": {
-            "annotations": {
-                "executionMode": execution_mode,
-                "lastExecutionModeUpdateTime": datetime.now(timezone.utc).isoformat(),
-                "gpuLatency": str(new_gpu_latency),
-                "cpuLatency": str(new_cpu_latency),
-            },
+            "annotations": annotations,
         },
         "spec": {
             "template": {
