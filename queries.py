@@ -6,7 +6,10 @@ from enum import Enum
 class QueryNames(Enum):
     LATENCY_AVG = "latency_avg"
     REQUEST_RATE = "request_rate"
+    LATENCY_P90 = "LATENCY_P90"
     LATENCY_P95 = "LATENCY_P95"
+    LATENCY_P99 = "LATENCY_P99"
+    LATENCY_P100 = "LATENCY_P100"
 
 
 QUERIES = {
@@ -14,8 +17,17 @@ QUERIES = {
         f'rate(activator_request_latencies_sum{{revision_name="{revision_name}"}}[{window}]) / '
         f'rate(activator_request_latencies_count{{revision_name="{revision_name}"}}[{window}])'
     ),
+    QueryNames.LATENCY_P90: lambda revision_name, window="5m": (
+        f'histogram_quantile(0.90, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
+    ),
     QueryNames.LATENCY_P95: lambda revision_name, window="5m": (
         f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
+    ),
+    QueryNames.LATENCY_P99: lambda revision_name, window="5m": (
+        f'histogram_quantile(0.99, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
+    ),
+    QueryNames.LATENCY_P100: lambda revision_name, window="5m": (
+        f'histogram_quantile(0.100, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
     ),
     QueryNames.REQUEST_RATE: lambda revision_name, window="5m": (
         f'rate(activator_request_count{{revision_name="{revision_name}"}}[{window}])'
