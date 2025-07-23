@@ -111,6 +111,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                         f"({latency_threshold}). Switching to CPU."
                     )
                     switch_execution_mode(service, reporter)
+                    return
             # Case 4.2.2: Latency is not available
             else:
                 logger.info(
@@ -118,8 +119,21 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                     f"({request_rate_threshold}) and latency is not available. Switching to CPU."
                 )
                 switch_execution_mode(service, reporter)
+                return
 
-    # TODO i could make the decision final if service.gpu_latency and service_cpu latencies are signinficantly different
+        # Case 5: When both modes are saved in the service and cpu mode is slower than gpu
+        # and cpu mode is the highest bucket boundary defined in the histogram, make a final decision and change to GPU
+        if (
+                service.cpu_latency is not None and
+                service.gpu_latency is not None and
+                service.cpu_latency == 100000.0 and
+                service.cpu_latency > service.gpu_latency * QUERY_THRESHOLDS[
+            QueryNames.REQUEST_RATE].performance_change_factor
+        ):
+            patch_knative_service(service.name, 1, ExecutionModes.GPU,
+                                  None, None,
+                                  service.namespace)
+            logger.info(f"{service.name}: Switched to final GPU mode")
 
 
 def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
@@ -127,7 +141,6 @@ def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
 
     latency_value = latency_result.query_result_long_interval if latency_result else None
 
-    # TODO maybe it makes sense to set it to CPU and GPU (see tree)
     if service.execution_mode == ExecutionModes.CPU_PREFERRED:
         patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, None,
                               latency_value,
