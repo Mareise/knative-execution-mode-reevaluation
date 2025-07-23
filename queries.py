@@ -20,7 +20,7 @@ QUERIES = {
 }
 
 QUERY_RESULT = namedtuple(
-    "QueryResult", ["query_result_short_interval", "query_result_long_interval", "new_mode_query_result"]
+    "QueryResult", ["query_result_short_interval", "query_result_long_interval"]
 )
 
 # TODO different performance_change_gap dependent on current execution mode

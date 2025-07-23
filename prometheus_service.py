@@ -31,27 +31,11 @@ class ServiceMetricsReporter:
                     )
                     logger.debug(f"Last modified window: {last_modified_window}")
                     if last_modified_window < self.window:
-                        old_revision_name = decrement_revision_name(self.service.revision_name)
-
-                        # Query for long interval when there was a change in the window interval
-                        old_revision_long_query = query_fn(old_revision_name, long_interval_query_window)
-                        old_revision_long_query_result = query_service_metrics(old_revision_name,
-                                                                               old_revision_long_query)
-
-                        # Query for short interval when there was a change in the window interval
-                        old_revision_short_query = query_fn(old_revision_name, short_interval_query_window)
-                        old_revision_short_query_result = query_service_metrics(old_revision_name,
-                                                                                old_revision_short_query)
-
                         # Query for new mode when there was a change in the window interval
                         new_mode_query = query_fn(self.service.revision_name, short_interval_query_window)
                         new_mode_query_result = query_service_metrics(self.service.revision_name, new_mode_query)
 
-                        # TODO i need to rethink this
-                        result = QUERY_RESULT(old_revision_short_query_result, old_revision_long_query_result,
-                                              new_mode_query_result)
-
-                        self.results[name] = result
+                        self.results[name] = QUERY_RESULT(new_mode_query_result, new_mode_query_result)
                         return
 
                 # Query for long interval
@@ -62,7 +46,7 @@ class ServiceMetricsReporter:
                 short_query = query_fn(self.service.revision_name, short_interval_query_window)
                 short_query_result = query_service_metrics(self.service.revision_name, short_query)
 
-                result = QUERY_RESULT(short_query_result, long_query_result, None)
+                result = QUERY_RESULT(short_query_result, long_query_result)
                 self.results[name] = result
 
             except Exception as e:

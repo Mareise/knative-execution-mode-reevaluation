@@ -39,10 +39,11 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         #         switch_execution_mode(service, reporter)
         #         return
         #
+
+        # Case 1: Cpu is too slow
         if (
-                latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[
-            QueryNames.LATENCY_AVG].upper_bound and
-                service.execution_mode == ExecutionModes.CPU_PREFERRED
+                service.execution_mode == ExecutionModes.CPU_PREFERRED and
+                latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound
         ):
             logger.info(
                 f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound})"
@@ -50,6 +51,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             switch_execution_mode(service, reporter)
             return
 
+        # Case 2: Function was executed on a cpu already, and gpu is not much faster
         if (
                 service.execution_mode == ExecutionModes.GPU_PREFERRED and
                 service.cpu_latency is not None and
@@ -62,6 +64,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             switch_execution_mode(service, reporter)
             return
 
+        # Case 3: Function was executed on a gpu already, and gpu is significantly faster than cpu
         if (
                 service.execution_mode == ExecutionModes.CPU_PREFERRED and
                 service.gpu_latency is not None and
@@ -74,41 +77,41 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             switch_execution_mode(service, reporter)
             return
 
-    # TODO refactor
+    # Case 4: GPU_PREFERRED mode - consider switching to CPU based on request rate and latency
     if service.execution_mode == ExecutionModes.GPU_PREFERRED:
-        if reporter.get_result(QueryNames.REQUEST_RATE) is not None:
-            # Checking if the request rate is below the threshold and if so switch to cpu when latency is not too high
-            request_rate_query_result = reporter.get_result(QueryNames.REQUEST_RATE).query_result_short_interval
-            latency_long_interval_query_result = reporter.get_result(QueryNames.LATENCY_AVG).query_result_long_interval
-            if (
-                    request_rate_query_result is not None and
-                    request_rate_query_result < QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
-            ):
-                if (
-                        latency_long_interval_query_result is not None and
-                        latency_long_interval_query_result < QUERY_THRESHOLDS[
-                    QueryNames.LATENCY_AVG].upper_bound_when_low_request_rate
-                ):
-                    logger.info(
-                        f"{service.name}: WARNING: Request rate is below lower bound "
-                        f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
-                        f" and the upper_bound_when_low_request_rate is over the threshold. "
-                    )
-                    switch_execution_mode(service)
-                elif latency_long_interval_query_result is None:
-                    logger.info(
-                        f"{service.name}: WARNING: Request rate is below lower bound "
-                        f"({QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound})"
-                    )
-                    switch_execution_mode(service)
+        request_rate_result = reporter.get_result(QueryNames.REQUEST_RATE)
+        latency_result = reporter.get_result(QueryNames.LATENCY_AVG)
 
-        elif reporter.get_result(QueryNames.REQUEST_RATE) is None or reporter.get_result(
-                QueryNames.REQUEST_RATE).query_result_short_interval is None:
-            logger.info(
-                f"{service.name}: WARNING: Request rate is not available, switching to CPU"
-            )
+        request_rate_value = request_rate_result.query_result_long_interval if request_rate_result else None
+        latency_value = latency_result.query_result_long_interval if latency_result else None
+
+        # Case 4.1: Request rate not available
+        if request_rate_value is None:
+            logger.info(f"{service.name}: WARNING: Request rate is not available, switching to CPU")
             switch_execution_mode(service, reporter)
             return
+
+        # Case 4.2: Request rate is below lower bound
+        request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
+        if request_rate_value < request_rate_threshold:
+            latency_threshold = QUERY_THRESHOLDS[QueryNames.LATENCY_AVG].upper_bound_when_low_request_rate
+
+            # Case 4.2.1: Latency is available and within acceptable range
+            if latency_value is not None:
+                if latency_value < latency_threshold:
+                    logger.info(
+                        f"{service.name}: WARNING: Request rate ({request_rate_value}) is below threshold "
+                        f"({request_rate_threshold}) and latency ({latency_value}) is within acceptable range "
+                        f"({latency_threshold}). Switching to CPU."
+                    )
+                    switch_execution_mode(service, reporter)
+            # Case 4.2.2: Latency is not available
+            else:
+                logger.info(
+                    f"{service.name}: WARNING: Request rate ({request_rate_value}) is below threshold "
+                    f"({request_rate_threshold}) and latency is not available. Switching to CPU."
+                )
+                switch_execution_mode(service, reporter)
 
     # TODO i could make the decision final if service.gpu_latency and service_cpu latencies are signinficantly different
 
