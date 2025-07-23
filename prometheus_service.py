@@ -69,7 +69,7 @@ class ServiceMetricsReporter:
                 lines.append(f"  {name}:")
                 for field_name, field_value in value._asdict().items():
                     if isinstance(field_value, float):
-                        lines.append(f"    {field_name}: {field_value:.2f}")
+                        lines.append(f"    {field_name}: {field_value:.4f}")
                     else:
                         lines.append(f"    {field_name}: {field_value}")
             else:
