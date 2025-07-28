@@ -55,7 +55,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 QueryNames.LATENCY_P95].performance_change_gap >= service.cpu_latency
             ):
                 logger.info(
-                    f"{service.name}: WARNING: GPU is not significantly faster than CPU, switching back to CPU"
+                    f"{service.name}: WARNING: GPU ({latency_query_result.query_result_short_interval}) is not significantly faster than CPU ({service.cpu_latency}), switching back to CPU"
                 )
                 switch_execution_mode(service, reporter)
                 return
@@ -68,7 +68,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 QueryNames.LATENCY_P95].performance_change_gap >= service.gpu_latency
             ):
                 logger.info(
-                    f"{service.name}: WARNING: GPU is significantly faster than CPU, switching to GPU"
+                    f"{service.name}: WARNING: GPU ({service.gpu_latency}) is significantly faster than CPU ({latency_query_result.query_result_short_interval}), switching to GPU"
                 )
                 switch_execution_mode(service, reporter)
                 return
