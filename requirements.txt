@@ -1,2 +1,2 @@
-requests
-kubernetes
+requests==2.32.4
+kubernetes==33.1.0

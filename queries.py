@@ -23,7 +23,8 @@ QUERIES = {
     #     f'histogram_quantile(0.90, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
     # ),
     QueryNames.LATENCY_P95: lambda revision_name, window="5m": (
-        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
+        f'histogram_quantile(0.95, sum(rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))) '
+        f'unless sum(rate(activator_request_count{{revision_name="{revision_name}"}}[1m])) < 10'
     ),
     # QueryNames.LATENCY_P99: lambda revision_name, window="5m": (
     #     f'histogram_quantile(0.99, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{window}]))'
