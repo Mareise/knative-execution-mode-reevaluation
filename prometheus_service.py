@@ -11,7 +11,7 @@ PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://localhost:9090")
 class ServiceMetricsReporter:
     def __init__(self, service: KnService):
         self.service = service
-        self.results: dict[str, str | None] = {}
+        self.results: dict[str, float | None] = {}
 
     def run_queries(self, query_functions: dict):
         for name, query_fn in query_functions.items():
@@ -28,7 +28,7 @@ class ServiceMetricsReporter:
                 )
                 self.results[name] = None
 
-    def get_result(self, query_name) -> str | None:
+    def get_result(self, query_name) -> float | None:
         return self.results.get(query_name)
 
     def all_results(self):
@@ -37,10 +37,7 @@ class ServiceMetricsReporter:
     def __str__(self):
         lines = [f"Service: {self.service.revision_name}"]
         for name, value in self.results.items():
-            if isinstance(value, float):
-                lines.append(f"    {name}: {value:.4f}")
-            else:
-                lines.append(f"    {name}: {value}")
+            lines.append(f"    {name}: {value:.4f}")
         return "\n".join(lines)
 
 

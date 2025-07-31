@@ -36,7 +36,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         # Case 2: Cpu is too slow
         if (
                 service.execution_mode == ExecutionModes.CPU_PREFERRED and
-                latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[
+                latency_query_result > QUERY_THRESHOLDS[
             LATENCY_QUERY_THRESHOLD_NAME].upper_bound
         ):
             logger.info(
@@ -51,11 +51,11 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             if (
                     service.execution_mode == ExecutionModes.GPU_PREFERRED and
                     service.cpu_latency is not None and
-                    latency_query_result.query_result_short_interval + QUERY_THRESHOLDS[
+                    latency_query_result + QUERY_THRESHOLDS[
                 LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.cpu_latency
             ):
                 logger.info(
-                    f"{service.name}: WARNING: GPU ({latency_query_result.query_result_short_interval}) is not significantly faster than CPU ({service.cpu_latency}), switching back to CPU"
+                    f"{service.name}: WARNING: GPU ({latency_query_result}) is not significantly faster than CPU ({service.cpu_latency}), switching back to CPU"
                 )
                 switch_execution_mode(service, reporter)
                 return
@@ -64,11 +64,11 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             if (
                     service.execution_mode == ExecutionModes.CPU_PREFERRED and
                     service.gpu_latency is not None and
-                    latency_query_result.query_result_short_interval - QUERY_THRESHOLDS[
+                    latency_query_result - QUERY_THRESHOLDS[
                 LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.gpu_latency
             ):
                 logger.info(
-                    f"{service.name}: WARNING: GPU ({service.gpu_latency}) is significantly faster than CPU ({latency_query_result.query_result_short_interval}), switching to GPU"
+                    f"{service.name}: WARNING: GPU ({service.gpu_latency}) is significantly faster than CPU ({latency_query_result}), switching to GPU"
                 )
                 switch_execution_mode(service, reporter)
                 return
@@ -81,24 +81,22 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         request_rate_result = reporter.get_result(QueryNames.REQUEST_RATE)
         latency_result = reporter.get_result(QueryNames.LATENCY_P95_long)
 
-        request_rate_value = request_rate_result.query_result_long_interval if request_rate_result else None
-
         # Case 4.1: Request rate not available
-        if request_rate_value is None:
+        if request_rate_result is None:
             logger.info(f"{service.name}: WARNING: Request rate is not available, switching to CPU")
             switch_execution_mode(service, reporter)
             return
 
         # Case 4.2: Request rate is below lower bound
         request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
-        if request_rate_value < request_rate_threshold:
+        if request_rate_result < request_rate_threshold:
             latency_threshold = QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound_when_low_request_rate
 
             # Case 4.2.1: Latency is available and within acceptable range
             if latency_result is not None:
                 if latency_result < latency_threshold:
                     logger.info(
-                        f"{service.name}: WARNING: Request rate ({request_rate_value}) is below threshold "
+                        f"{service.name}: WARNING: Request rate ({request_rate_result}) is below threshold "
                         f"({request_rate_threshold}) and latency ({latency_result}) is within acceptable range "
                         f"({latency_threshold}). Switching to CPU."
                     )
@@ -107,7 +105,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             # Case 4.2.2: Latency is not available
             else:
                 logger.info(
-                    f"{service.name}: WARNING: Request rate ({request_rate_value}) is below threshold "
+                    f"{service.name}: WARNING: Request rate ({request_rate_result}) is below threshold "
                     f"({request_rate_threshold}) and latency is not available. Switching to CPU."
                 )
                 switch_execution_mode(service, reporter)
