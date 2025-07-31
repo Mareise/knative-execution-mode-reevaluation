@@ -1,15 +1,13 @@
-import os
-
 from constants import ExecutionModes
 from knative_service import patch_knative_service, KnService
 from logger import get_logger
 from prometheus_service import ServiceMetricsReporter
-from queries import QUERY_THRESHOLDS, QueryNames
+from queries import QUERY_THRESHOLDS, QueryNames, WINDOW_MINUTES
 from datetime import datetime, timezone
 
 logger = get_logger(__name__)
 
-WINDOW_MINUTES = int(os.environ.get("WINDOW_MINUTES", "30"))
+LATENCY_QUERY_THRESHOLD_NAME = "latency"
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
@@ -19,7 +17,8 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             service.cpu_latency is not None and
             service.gpu_latency is not None and
             service.cpu_latency >= 100000 and
-            service.cpu_latency - QUERY_THRESHOLDS[QueryNames.LATENCY_P95].performance_change_gap > service.gpu_latency
+            service.cpu_latency - QUERY_THRESHOLDS[
+        LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap > service.gpu_latency
     ):
         patch_knative_service(
             service.name,
@@ -32,15 +31,16 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         logger.info(f"{service.name}: Switched to final GPU mode")
         return
 
-    latency_query_result = reporter.get_result(QueryNames.LATENCY_P95)
-    if latency_query_result is not None and latency_query_result.query_result_short_interval is not None:
+    latency_query_result = reporter.get_result(QueryNames.LATENCY_P95_short)
+    if latency_query_result is not None:
         # Case 2: Cpu is too slow
         if (
                 service.execution_mode == ExecutionModes.CPU_PREFERRED and
-                latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[QueryNames.LATENCY_P95].upper_bound
+                latency_query_result.query_result_short_interval > QUERY_THRESHOLDS[
+            LATENCY_QUERY_THRESHOLD_NAME].upper_bound
         ):
             logger.info(
-                f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[QueryNames.LATENCY_P95].upper_bound})"
+                f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound})"
             )
             switch_execution_mode(service, reporter)
             return
@@ -52,7 +52,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                     service.execution_mode == ExecutionModes.GPU_PREFERRED and
                     service.cpu_latency is not None and
                     latency_query_result.query_result_short_interval + QUERY_THRESHOLDS[
-                QueryNames.LATENCY_P95].performance_change_gap >= service.cpu_latency
+                LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.cpu_latency
             ):
                 logger.info(
                     f"{service.name}: WARNING: GPU ({latency_query_result.query_result_short_interval}) is not significantly faster than CPU ({service.cpu_latency}), switching back to CPU"
@@ -65,7 +65,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                     service.execution_mode == ExecutionModes.CPU_PREFERRED and
                     service.gpu_latency is not None and
                     latency_query_result.query_result_short_interval - QUERY_THRESHOLDS[
-                QueryNames.LATENCY_P95].performance_change_gap >= service.gpu_latency
+                LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.gpu_latency
             ):
                 logger.info(
                     f"{service.name}: WARNING: GPU ({service.gpu_latency}) is significantly faster than CPU ({latency_query_result.query_result_short_interval}), switching to GPU"
@@ -79,10 +79,9 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             not is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES)
     ):
         request_rate_result = reporter.get_result(QueryNames.REQUEST_RATE)
-        latency_result = reporter.get_result(QueryNames.LATENCY_P95)
+        latency_result = reporter.get_result(QueryNames.LATENCY_P95_long)
 
         request_rate_value = request_rate_result.query_result_long_interval if request_rate_result else None
-        latency_value = latency_result.query_result_long_interval if latency_result else None
 
         # Case 4.1: Request rate not available
         if request_rate_value is None:
@@ -93,14 +92,14 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         # Case 4.2: Request rate is below lower bound
         request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
         if request_rate_value < request_rate_threshold:
-            latency_threshold = QUERY_THRESHOLDS[QueryNames.LATENCY_P95].upper_bound_when_low_request_rate
+            latency_threshold = QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound_when_low_request_rate
 
             # Case 4.2.1: Latency is available and within acceptable range
-            if latency_value is not None:
-                if latency_value < latency_threshold:
+            if latency_result is not None:
+                if latency_result < latency_threshold:
                     logger.info(
                         f"{service.name}: WARNING: Request rate ({request_rate_value}) is below threshold "
-                        f"({request_rate_threshold}) and latency ({latency_value}) is within acceptable range "
+                        f"({request_rate_threshold}) and latency ({latency_result}) is within acceptable range "
                         f"({latency_threshold}). Switching to CPU."
                     )
                     switch_execution_mode(service, reporter)
@@ -116,18 +115,16 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
 
 
 def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
-    latency_result = reporter.get_result(QueryNames.LATENCY_P95)
-
-    latency_value = latency_result.query_result_long_interval if latency_result else None
+    latency_result = reporter.get_result(QueryNames.LATENCY_P95_long)
 
     if service.execution_mode == ExecutionModes.CPU_PREFERRED:
         patch_knative_service(service.name, 1, ExecutionModes.GPU_PREFERRED, None,
-                              latency_value,
+                              latency_result,
                               service.namespace)
         logger.info(f"{service.name}: Switched to GPU_PREFERRED mode")
     elif service.execution_mode == ExecutionModes.GPU_PREFERRED:
         patch_knative_service(service.name, 0, ExecutionModes.CPU_PREFERRED,
-                              latency_value, None,
+                              latency_result, None,
                               service.namespace)
         logger.info(f"{service.name}: Switched to CPU_PREFERRED mode")
 
