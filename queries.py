@@ -25,8 +25,9 @@ QUERIES = {
         f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{WINDOW_MINUTES * LONG_INTERVAL_MULTIPLIER}m])) '
     ),
     QueryNames.LATENCY_P95_short: lambda revision_name: (
-        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{WINDOW_MINUTES}m])) '
-        f'unless sum(rate(activator_request_count{{revision_name="{revision_name}"}}[1m])) < 10'
+        f'histogram_quantile(0.95, '
+        f'sum by (revision_name, le) (rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{WINDOW_MINUTES}m]))) '
+        f'unless sum by (revision_name) (rate(activator_request_count{{revision_name="{revision_name}"}}[1m])) < 10'
     ),
     QueryNames.REQUEST_RATE: lambda revision_name: (
         f'rate(activator_request_count{{revision_name="{revision_name}"}}[{LOW_REQUEST_RATE_SWITCHING_MINUTES}m])'
