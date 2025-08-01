@@ -1,6 +1,10 @@
 import os
 from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
+
+from constants import LATENCY_QUERY_THRESHOLD_NAME, REQUEST_RATE_QUERY_THRESHOLD_NAME
 
 WINDOW_MINUTES = int(os.environ.get("WINDOW_MINUTES", "30"))
 LONG_INTERVAL_MULTIPLIER = int(os.environ.get("LONG_INTERVAL_MULTIPLIER", "50"))
@@ -36,34 +40,38 @@ QUERIES = {
     ),
 }
 
-QUERY_THRESHOLD = namedtuple(
-    "QueryThreshold", ["upper_bound", "upper_bound_when_low_request_rate", "lower_bound", "performance_change_gap"]
-)
+
+@dataclass
+class QueryThreshold:
+    upper_bound: Optional[int] = None
+    upper_bound_when_low_request_rate: Optional[int] = None
+    lower_bound: Optional[float] = None
+    performance_change_gap: Optional[int] = None
+
 
 QUERY_THRESHOLDS = {
     QueryNames.LATENCY_AVG:
-        QUERY_THRESHOLD(
+        QueryThreshold(
             upper_bound=int(os.environ.get("THRESHOLD_LATENCY_UPPER", "1000")),
             upper_bound_when_low_request_rate=int(
                 os.environ.get("THRESHOLD_LATENCY_UPPER_WHEN_LOW_REQUEST_RATE", "2000")
             ),
-            lower_bound=None,
             performance_change_gap=int(os.environ.get("THRESHOLD_LATENCY_PERFORMANCE_CHANGE_GAP", "200"))
         ),
-    "latency":
-        QUERY_THRESHOLD(
+    LATENCY_QUERY_THRESHOLD_NAME:
+        QueryThreshold(
             upper_bound=int(os.environ.get("THRESHOLD_LATENCY_UPPER", "1000")),
             upper_bound_when_low_request_rate=int(
                 os.environ.get("THRESHOLD_LATENCY_UPPER_WHEN_LOW_REQUEST_RATE", "2000")
             ),
-            lower_bound=None,
             performance_change_gap=int(os.environ.get("THRESHOLD_LATENCY_PERFORMANCE_CHANGE_GAP", "200"))
         ),
-    "request_rate":
-        QUERY_THRESHOLD(
-            upper_bound=None,
-            upper_bound_when_low_request_rate=None,
+    QueryNames.REQUEST_RATE_long:
+        QueryThreshold(
             lower_bound=float(os.environ.get("THRESHOLD_REQUEST_RATE_LOWER_BOUND", "0.01")),
-            performance_change_gap=None
+        ),
+    QueryNames.REQUEST_RATE_short:
+        QueryThreshold(
+            lower_bound=float(os.environ.get("THRESHOLD_REQUEST_RATE_COLD_START_MITIGATION", "0.2")),
         ),
 }

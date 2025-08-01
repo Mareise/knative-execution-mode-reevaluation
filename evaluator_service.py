@@ -8,15 +8,14 @@ from datetime import datetime, timezone
 logger = get_logger(__name__)
 
 LATENCY_QUERY_THRESHOLD_NAME = "latency"
-REQUEST_RATE_QUERY_THRESHOLD_NAME = "request_rate"
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
     # Case 0: When the request rate is too low, don't make a decision
-    # TODO Use env var
     if (
             reporter.get_result(QueryNames.REQUEST_RATE_short) is not None and
-            reporter.get_result(QueryNames.REQUEST_RATE_short) < 0.2):
+            reporter.get_result(QueryNames.REQUEST_RATE_short) < QUERY_THRESHOLDS[
+        QueryNames.REQUEST_RATE_short].lower_bound):
         logger.info(f"{service.name}: The request rate is too low to make a decision. Keeping as it is.")
         return
     # Case 1: When both modes are saved in the service and cpu mode is slower than gpu
@@ -96,7 +95,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             return
 
         # Case 4.2: Request rate is below lower bound
-        request_rate_threshold = QUERY_THRESHOLDS[REQUEST_RATE_QUERY_THRESHOLD_NAME].lower_bound
+        request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE_long].lower_bound
         if request_rate_result < request_rate_threshold:
             latency_threshold = QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound_when_low_request_rate
 
