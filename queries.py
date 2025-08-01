@@ -1,13 +1,12 @@
 import os
-from collections import namedtuple
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from constants import LATENCY_QUERY_THRESHOLD_NAME, REQUEST_RATE_QUERY_THRESHOLD_NAME
-
 WINDOW_MINUTES = int(os.environ.get("WINDOW_MINUTES", "30"))
 LONG_INTERVAL_MULTIPLIER = int(os.environ.get("LONG_INTERVAL_MULTIPLIER", "50"))
+
+LATENCY_QUERY_THRESHOLD_NAME = "latency"
 
 
 class QueryNames(Enum):

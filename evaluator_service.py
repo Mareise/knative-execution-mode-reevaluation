@@ -2,12 +2,10 @@ from constants import ExecutionModes
 from knative_service import patch_knative_service, KnService
 from logger import get_logger
 from prometheus_service import ServiceMetricsReporter
-from queries import QUERY_THRESHOLDS, QueryNames, WINDOW_MINUTES
+from queries import QUERY_THRESHOLDS, QueryNames, WINDOW_MINUTES, LATENCY_QUERY_THRESHOLD_NAME
 from datetime import datetime, timezone
 
 logger = get_logger(__name__)
-
-LATENCY_QUERY_THRESHOLD_NAME = "latency"
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
