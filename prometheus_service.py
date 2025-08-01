@@ -37,9 +37,7 @@ class ServiceMetricsReporter:
     def __str__(self):
         lines = [f"Service: {self.service.revision_name}"]
         for name, value in self.results.items():
-            if value is None:
-                lines.append(f"    {name}: N/A")
-            lines.append(f"    {name}: {value:.4f}")
+            lines.append(f"    {name}: {value:.4f}" if value is not None else f"    {name}: N/A")
         return "\n".join(lines)
 
 
