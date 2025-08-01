@@ -9,14 +9,7 @@ logger = get_logger(__name__)
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
-    # Case 0: When the request rate is too low, don't make a decision
-    if (
-            reporter.get_result(QueryNames.REQUEST_RATE_short) is not None and
-            reporter.get_result(QueryNames.REQUEST_RATE_short) < QUERY_THRESHOLDS[
-        QueryNames.REQUEST_RATE_short].lower_bound):
-        logger.info(f"{service.name}: The request rate is too low to make a decision. Keeping as it is.")
-        return
-    # Case 1: When both modes are saved in the service and cpu mode is slower than gpu
+    # Case 0: When both modes are saved in the service and cpu mode is slower than gpu
     # and cpu mode is the highest bucket boundary defined in the histogram, make a final decision and change to GPU
     if (
             service.cpu_latency is not None and
@@ -36,47 +29,55 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
         logger.info(f"{service.name}: Switched to final GPU mode")
         return
 
-    latency_query_result = reporter.get_result(QueryNames.LATENCY_P95_short)
-    if latency_query_result is not None:
-        # Case 2: Cpu is too slow
-        if (
-                service.execution_mode == ExecutionModes.CPU_PREFERRED and
-                latency_query_result > QUERY_THRESHOLDS[
-            LATENCY_QUERY_THRESHOLD_NAME].upper_bound
-        ):
-            logger.info(
-                f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound})"
-            )
-            switch_execution_mode(service, reporter)
-            return
-
-        # Case 3: If there was a recent change # TODO have to check if this makes sense
-        if is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES):
-            # Case 3.1: Function was executed on a cpu already, and gpu is not much faster
-            if (
-                    service.execution_mode == ExecutionModes.GPU_PREFERRED and
-                    service.cpu_latency is not None and
-                    latency_query_result + QUERY_THRESHOLDS[
-                LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.cpu_latency
-            ):
-                logger.info(
-                    f"{service.name}: WARNING: GPU ({latency_query_result}) is not significantly faster than CPU ({service.cpu_latency}), switching back to CPU"
-                )
-                switch_execution_mode(service, reporter)
-                return
-
-            # Case 3.2: Function was executed on a gpu already, and gpu is significantly faster than cpu
+    # Case 1: When the request rate is too low, don't make a decision on latency
+    if (
+            reporter.get_result(QueryNames.REQUEST_RATE_short) is not None and
+            reporter.get_result(QueryNames.REQUEST_RATE_short) < QUERY_THRESHOLDS[
+        QueryNames.REQUEST_RATE_short].lower_bound
+    ):
+        logger.info(f"{service.name}: The request rate is too low to make a decision based on latency allone.")
+    else:
+        latency_query_result = reporter.get_result(QueryNames.LATENCY_P95_short)
+        if latency_query_result is not None:
+            # Case 2: Cpu is too slow
             if (
                     service.execution_mode == ExecutionModes.CPU_PREFERRED and
-                    service.gpu_latency is not None and
-                    latency_query_result - QUERY_THRESHOLDS[
-                LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.gpu_latency
+                    latency_query_result > QUERY_THRESHOLDS[
+                LATENCY_QUERY_THRESHOLD_NAME].upper_bound
             ):
                 logger.info(
-                    f"{service.name}: WARNING: GPU ({service.gpu_latency}) is significantly faster than CPU ({latency_query_result}), switching to GPU"
+                    f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound})"
                 )
                 switch_execution_mode(service, reporter)
                 return
+
+            # Case 3: If there was a recent change
+            if is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES):
+                # Case 3.1: Function was executed on a cpu already, and gpu is not much faster
+                if (
+                        service.execution_mode == ExecutionModes.GPU_PREFERRED and
+                        service.cpu_latency is not None and
+                        latency_query_result + QUERY_THRESHOLDS[
+                    LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.cpu_latency
+                ):
+                    logger.info(
+                        f"{service.name}: WARNING: GPU ({latency_query_result}) is not significantly faster than CPU ({service.cpu_latency}), switching back to CPU"
+                    )
+                    switch_execution_mode(service, reporter)
+                    return
+
+                # Case 3.2: Function was executed on a gpu already, and gpu is significantly faster than cpu
+                if (
+                        service.execution_mode == ExecutionModes.CPU_PREFERRED and
+                        service.gpu_latency is not None and
+                        latency_query_result - QUERY_THRESHOLDS[
+                    LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap >= service.gpu_latency
+                ):
+                    logger.info(
+                        f"{service.name}: WARNING: GPU ({service.gpu_latency}) is significantly faster than CPU ({latency_query_result}), switching to GPU"
+                    )
+                    switch_execution_mode(service, reporter)
+                    return
 
     # Case 4: GPU_PREFERRED mode - consider switching to CPU based on request rate and latency (only when there was no recent update)
     if (
