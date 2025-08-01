@@ -59,7 +59,7 @@ QUERY_THRESHOLDS = {
             lower_bound=None,
             performance_change_gap=int(os.environ.get("THRESHOLD_LATENCY_PERFORMANCE_CHANGE_GAP", "200"))
         ),
-    QueryNames.REQUEST_RATE:
+    "request_rate":
         QUERY_THRESHOLD(
             upper_bound=None,
             upper_bound_when_low_request_rate=None,

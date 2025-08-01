@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 logger = get_logger(__name__)
 
 LATENCY_QUERY_THRESHOLD_NAME = "latency"
+REQUEST_RATE_QUERY_THRESHOLD_NAME = "request_rate"
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
@@ -95,7 +96,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             return
 
         # Case 4.2: Request rate is below lower bound
-        request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE_long].lower_bound
+        request_rate_threshold = QUERY_THRESHOLDS[REQUEST_RATE_QUERY_THRESHOLD_NAME].lower_bound
         if request_rate_result < request_rate_threshold:
             latency_threshold = QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound_when_low_request_rate
 
