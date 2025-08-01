@@ -18,8 +18,8 @@ class QueryNames(Enum):
     LATENCY_P95_short = "LATENCY_P95_short"
 
 
-LOW_REQUEST_RATE_SWITCHING_MINUTES = os.environ.get(
-    "LOW_REQUEST_RATE_SWITCHING_MINUTES", "30")
+LOW_REQUEST_RATE_WINDOW_MINUTES = os.environ.get(
+    "LOW_REQUEST_RATE_WINDOW_MINUTES", "30")
 
 QUERIES = {
     # QueryNames.LATENCY_AVG: lambda revision_name, window="5m": (
@@ -33,7 +33,7 @@ QUERIES = {
         f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{WINDOW_MINUTES}m]))'
     ),
     QueryNames.REQUEST_RATE_long: lambda revision_name: (
-        f'rate(activator_request_count{{revision_name="{revision_name}"}}[{LOW_REQUEST_RATE_SWITCHING_MINUTES}m])'
+        f'rate(activator_request_count{{revision_name="{revision_name}"}}[{LOW_REQUEST_RATE_WINDOW_MINUTES}m])'
     ),
     QueryNames.REQUEST_RATE_short: lambda revision_name: (
         f'rate(activator_request_count{{revision_name="{revision_name}"}}[1m])'
