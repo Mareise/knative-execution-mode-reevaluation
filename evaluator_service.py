@@ -11,6 +11,13 @@ LATENCY_QUERY_THRESHOLD_NAME = "latency"
 
 
 def evaluator(service: KnService, reporter: ServiceMetricsReporter):
+    # Case 0: When the request rate is too low, don't make a decision
+    # TODO Use env var
+    if (
+            reporter.get_result(QueryNames.REQUEST_RATE_short) is not None and
+            reporter.get_result(QueryNames.REQUEST_RATE_short) < 0.2):
+        logger.info(f"{service.name}: The request rate is too low to make a decision. Keeping as it is.")
+        return
     # Case 1: When both modes are saved in the service and cpu mode is slower than gpu
     # and cpu mode is the highest bucket boundary defined in the histogram, make a final decision and change to GPU
     if (
@@ -78,7 +85,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             service.execution_mode == ExecutionModes.GPU_PREFERRED and
             not is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES)
     ):
-        request_rate_result = reporter.get_result(QueryNames.REQUEST_RATE)
+        request_rate_result = reporter.get_result(QueryNames.REQUEST_RATE_long)
         latency_result = reporter.get_result(QueryNames.LATENCY_P95_long)
 
         # Case 4.1: Request rate not available
@@ -88,7 +95,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             return
 
         # Case 4.2: Request rate is below lower bound
-        request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE].lower_bound
+        request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE_long].lower_bound
         if request_rate_result < request_rate_threshold:
             latency_threshold = QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound_when_low_request_rate
 
