@@ -51,7 +51,7 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 return
 
             # Case 3: If there was a recent change
-            if is_recent_update(service.last_execution_mode_update_time, WINDOW_MINUTES):
+            if is_recent_update_with_cold_start_wait_time(service.last_execution_mode_update_time, WINDOW_MINUTES):
                 # Case 3.1: Function was executed on a cpu already, and gpu is not much faster
                 if (
                         service.execution_mode == ExecutionModes.GPU_PREFERRED and
@@ -132,6 +132,17 @@ def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
         logger.info(f"{service.name}: Switched to CPU_PREFERRED mode")
 
 
+def is_recent_update_with_cold_start_wait_time(last_update: str, window_minutes: int) -> bool:
+    if last_update is None:
+        return False
+    last_modified_window = int(
+        (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
+    )
+    logger.debug(f"Last modified window: {last_modified_window}")
+    if last_modified_window < 2: return False  # Because of cold start we wait for 2 minutes before making a decision
+    return last_modified_window < window_minutes
+
+
 def is_recent_update(last_update: str, window_minutes: int) -> bool:
     if last_update is None:
         return False
@@ -139,5 +150,4 @@ def is_recent_update(last_update: str, window_minutes: int) -> bool:
         (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
     )
     logger.debug(f"Last modified window: {last_modified_window}")
-    if last_modified_window < 2: return False
     return last_modified_window < window_minutes
