@@ -139,4 +139,5 @@ def is_recent_update(last_update: str, window_minutes: int) -> bool:
         (datetime.now(timezone.utc) - datetime.fromisoformat(last_update)).total_seconds() / 60
     )
     logger.debug(f"Last modified window: {last_modified_window}")
+    if last_modified_window < 2: return False
     return last_modified_window < window_minutes
