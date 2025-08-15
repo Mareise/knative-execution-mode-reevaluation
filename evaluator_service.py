@@ -41,8 +41,12 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
             # Case 2: Cpu is too slow
             if (
                     service.execution_mode == ExecutionModes.CPU_PREFERRED and
-                    latency_query_result > QUERY_THRESHOLDS[
-                LATENCY_QUERY_THRESHOLD_NAME].upper_bound
+                    latency_query_result > QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound and
+                    (
+                            service.gpu_latency is None or
+                            service.gpu_latency + QUERY_THRESHOLDS[
+                                LATENCY_QUERY_THRESHOLD_NAME].performance_change_gap <= latency_query_result
+                    )
             ):
                 logger.info(
                     f"{service.name}: WARNING: Result is above upper bound ({QUERY_THRESHOLDS[LATENCY_QUERY_THRESHOLD_NAME].upper_bound})"
