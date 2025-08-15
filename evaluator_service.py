@@ -105,24 +105,25 @@ def evaluator(service: KnService, reporter: ServiceMetricsReporter):
                 return
 
         # Case 4.2: Request rate is available and below lower bound
-        request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE_long].lower_bound
-        if request_rate_result_long < request_rate_threshold:
-            if service.cpu_latency is None:
-                logger.info(
-                    f"{service.name}: WARNING: Request rate ({request_rate_result_long}) is below threshold "
-                    f"({request_rate_threshold}) and cpu latency is not available. Switching to CPU."
-                )
-                switch_execution_mode(service, reporter)
-                return
+        if request_rate_result_long is not None:
+            request_rate_threshold = QUERY_THRESHOLDS[QueryNames.REQUEST_RATE_long].lower_bound
+            if request_rate_result_long < request_rate_threshold:
+                if service.cpu_latency is None:
+                    logger.info(
+                        f"{service.name}: WARNING: Request rate ({request_rate_result_long}) is below threshold "
+                        f"({request_rate_threshold}) and cpu latency is not available. Switching to CPU."
+                    )
+                    switch_execution_mode(service, reporter)
+                    return
 
-            if service.cpu_latency < latency_threshold:
-                logger.info(
-                    f"{service.name}: WARNING: Request rate ({request_rate_result_long}) is below threshold "
-                    f"({request_rate_threshold}) and cpu latency ({service.cpu_latency}) is within acceptable range "
-                    f"({latency_threshold}). Switching to CPU."
-                )
-                switch_execution_mode(service, reporter)
-                return
+                if service.cpu_latency < latency_threshold:
+                    logger.info(
+                        f"{service.name}: WARNING: Request rate ({request_rate_result_long}) is below threshold "
+                        f"({request_rate_threshold}) and cpu latency ({service.cpu_latency}) is within acceptable range "
+                        f"({latency_threshold}). Switching to CPU."
+                    )
+                    switch_execution_mode(service, reporter)
+                    return
 
 
 def switch_execution_mode(service: KnService, reporter: ServiceMetricsReporter):
