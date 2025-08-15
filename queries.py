@@ -26,16 +26,16 @@ QUERIES = {
     #     f'rate(activator_request_latencies_count{{revision_name="{revision_name}"}}[{window}])'
     # ),
     QueryNames.LATENCY_P95_long: lambda revision_name: (
-        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{WINDOW_MINUTES * LONG_INTERVAL_MULTIPLIER}m])) '
+        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}", response_code_class="2xx"}}[{WINDOW_MINUTES * LONG_INTERVAL_MULTIPLIER}m])) '
     ),
     QueryNames.LATENCY_P95_short: lambda revision_name: (
-        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}"}}[{WINDOW_MINUTES}m]))'
+        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}", response_code_class="2xx"}}[{WINDOW_MINUTES}m]))'
     ),
     QueryNames.REQUEST_RATE_long: lambda revision_name: (
-        f'rate(activator_request_count{{revision_name="{revision_name}"}}[{LOW_REQUEST_RATE_WINDOW_MINUTES}m])'
+        f'rate(activator_request_count{{revision_name="{revision_name}", response_code_class="2xx"}}[{LOW_REQUEST_RATE_WINDOW_MINUTES}m])'
     ),
     QueryNames.REQUEST_RATE_short: lambda revision_name: (
-        f'rate(activator_request_count{{revision_name="{revision_name}"}}[1m])'
+        f'rate(activator_request_count{{revision_name="{revision_name}", response_code_class="2xx"}}[1m])'
     ),
 }
 
