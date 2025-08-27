@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Optional
 
 WINDOW_MINUTES = int(os.environ.get("WINDOW_MINUTES", "30"))
-LONG_INTERVAL_MULTIPLIER = int(os.environ.get("LONG_INTERVAL_MULTIPLIER", "50"))
+LONG_INTERVAL_WINDOW_MINUTES = int(os.environ.get("LONG_INTERVAL_WINDOW_MINUTES", "500"))
 
 LATENCY_QUERY_THRESHOLD_NAME = "latency"
 
@@ -26,7 +26,7 @@ QUERIES = {
     #     f'rate(activator_request_latencies_count{{revision_name="{revision_name}"}}[{window}])'
     # ),
     QueryNames.LATENCY_P95_long: lambda revision_name: (
-        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}", response_code_class="2xx"}}[{WINDOW_MINUTES * LONG_INTERVAL_MULTIPLIER}m])) '
+        f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}", response_code_class="2xx"}}[{LONG_INTERVAL_WINDOW_MINUTES}m])) '
     ),
     QueryNames.LATENCY_P95_short: lambda revision_name: (
         f'histogram_quantile(0.95, rate(activator_request_latencies_bucket{{revision_name="{revision_name}", response_code_class="2xx"}}[{WINDOW_MINUTES}m]))'
