@@ -31,7 +31,7 @@ def get_knative_services():
     kn_services = [
         KnService(
             item["metadata"]["name"],
-            item["status"]["latestReadyRevisionName"],
+            item["status"].get("latestReadyRevisionName"),
             item["metadata"]["namespace"],
             item["metadata"]["annotations"].get("executionMode"),
             item["metadata"]["annotations"].get("lastExecutionModeUpdateTime"),
